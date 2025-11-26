@@ -137,7 +137,7 @@ export default function HomeScreen() {
 
         {/* Today Section */}
         <View style={styles.sectionHeader}>
-          <View style={styles.sectionIndicator} />
+          <IconLibrary iconName="psychology" size={24} color={Colors.light.text} />
           <Text style={styles.sectionTitle}>Today</Text>
         </View>
 
@@ -178,11 +178,11 @@ export default function HomeScreen() {
 
         {/* Digital Twin Suggestions Section */}
         <View style={styles.sectionHeader}>
-          <View style={styles.sectionIndicator} />
+          <IconLibrary iconName="psychology" size={24} color={Colors.light.text} />
           <Text style={styles.sectionTitle}>Digital twin suggestions</Text>
         </View>
 
-        {/* Suggestion Cards */}
+        {/* Suggestion Cards - Text-based cards only (matching Figma ContentCards) */}
         {suggestions.map((suggestion, index) => (
           <View key={index} style={styles.suggestionCard}>
             <View style={styles.suggestionHeader}>
@@ -204,6 +204,11 @@ export default function HomeScreen() {
             <Text style={styles.suggestionDescription}>{suggestion.description}</Text>
           </View>
         ))}
+
+        {/* View All Articles Button */}
+        <TouchableOpacity style={styles.viewAllButton}>
+          <Text style={styles.viewAllText}>View all articles</Text>
+        </TouchableOpacity>
       </ScrollView>
       <BottomNavigation activeTab="home" />
     </View>
@@ -270,16 +275,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     paddingVertical: Spacing.md,
   },
-  sectionIndicator: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.light.accent,
-  },
   sectionTitle: {
     fontFamily: Typography.fontFamily,
     fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
+    fontWeight: Typography.fontWeight.medium,
     color: Colors.light.text,
   },
   todayScroll: {
@@ -307,7 +306,7 @@ const styles = StyleSheet.create({
   },
   todayDivider: {
     height: 1,
-    backgroundColor: Colors.light.accent,
+    backgroundColor: Colors.light.primary,
   },
   todayDots: {
     flexDirection: 'row',
@@ -318,7 +317,7 @@ const styles = StyleSheet.create({
     width: 9.618,
     height: 9.618,
     borderRadius: 4.809,
-    backgroundColor: Colors.light.accent,
+    backgroundColor: Colors.light.primary,
   },
   todayImagePlaceholder: {
     flex: 1,
@@ -353,7 +352,7 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: Colors.light.accent,
+    borderColor: Colors.light.primary,
     backgroundColor: Colors.light.background,
   },
   newGoalText: {
@@ -410,7 +409,7 @@ const styles = StyleSheet.create({
   },
   suggestionDivider: {
     height: 1,
-    backgroundColor: Colors.light.accent,
+    backgroundColor: Colors.light.primary,
     marginVertical: Spacing.sm,
   },
   suggestionDescription: {
@@ -419,5 +418,21 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     lineHeight: 20,
     paddingTop: Spacing.sm,
+  },
+  viewAllButton: {
+    backgroundColor: Colors.light.primary,
+    borderRadius: BorderRadius.full,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xl,
+  },
+  viewAllText: {
+    fontFamily: Typography.fontFamily,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.light.text,
+    fontWeight: Typography.fontWeight.regular,
   },
 });

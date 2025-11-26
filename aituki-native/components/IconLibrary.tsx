@@ -57,6 +57,7 @@ const iconMap: Record<string, string> = {
   language: 'language',
   'drag-indicator': 'drag-indicator',
   mic: 'mic',
+  psychology: 'psychology',
   
   // Bottom Navigation Icons (from Figma Dock)
   workbench: 'dashboard', // Workbench/dashboard icon for home
