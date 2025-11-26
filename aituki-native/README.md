@@ -61,7 +61,7 @@ For Cloudflare Pages deployment, you **MUST** configure the following settings i
 1. **Framework preset**: Select "None" or "Other" (do NOT use React or React Static)
 2. **Build command**: `npm run build`
 3. **Output directory**: `dist`
-4. **Root directory**: (leave empty)
+4. **Root directory**: `aituki-native` ⚠️ **IMPORTANT: This must be set!**
 5. **Environment variables**: 
    - `NODE_VERSION`: `22.16.0` (or latest LTS)
 
