@@ -17,11 +17,11 @@ interface NavigationItem {
 }
 
 const navigationItems: NavigationItem[] = [
-  { name: 'home', iconName: 'home', path: '/' },
-  { name: 'target', iconName: 'target', path: '/goals' },
-  { name: 'data', iconName: 'data', path: '/data' },
-  { name: 'measure', iconName: 'heart', path: '/health' },
-  { name: 'tuki', iconName: 'person', path: '/twin' },
+  { name: 'home', iconName: 'workbench', path: '/' },
+  { name: 'target', iconName: 'trace', path: '/goals' },
+  { name: 'data', iconName: 'watch', path: '/data' },
+  { name: 'measure', iconName: 'heart-rate', path: '/health' },
+  { name: 'tuki', iconName: 'jump', path: '/twin' },
 ];
 
 const pathForTab: Record<string, string> = {
@@ -66,7 +66,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
   };
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingBottom: Spacing.xl + insets.bottom }]}>
       {navigationItems.map((item, index) => {
         const isActive = currentTab === item.name;
         return (
@@ -98,10 +98,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: Colors.light.primary,
-    borderTopLeftRadius: BorderRadius.full,
-    borderTopRightRadius: BorderRadius.full,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
+    borderTopLeftRadius: BorderRadius.full, // 32px top left
+    borderTopRightRadius: BorderRadius.full, // 32px top right
+    borderBottomLeftRadius: 0, // 0 bottom left
+    borderBottomRightRadius: 0, // 0 bottom right
+    paddingTop: Spacing.md, // 16px top
+    paddingHorizontal: Spacing.lg, // 24px left/right
+    paddingBottom: Spacing.xl, // 32px bottom (will be adjusted by safe area insets)
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

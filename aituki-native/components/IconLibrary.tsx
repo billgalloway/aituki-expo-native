@@ -1,11 +1,10 @@
 /**
  * Icon Library Component
- * Maps icon names to Material Icons or custom icons
+ * Maps icon names to Material Icons (Material Symbols)
  */
 
 import React from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
-import { IconSymbol } from './ui/icon-symbol';
 
 interface IconLibraryProps {
   iconName: string;
@@ -15,6 +14,7 @@ interface IconLibraryProps {
 }
 
 // Icon name mapping to Material Icons
+// Using Material Symbols icon names from @expo/vector-icons
 const iconMap: Record<string, string> = {
   // Navigation
   home: 'home',
@@ -34,6 +34,7 @@ const iconMap: Record<string, string> = {
   data: 'data-usage',
   heart: 'favorite',
   heartRate: 'favorite-border',
+  'heart-rate': 'monitor-heart', // Heart rate monitor icon
   person: 'person',
   user: 'person-outline',
   
@@ -43,11 +44,11 @@ const iconMap: Record<string, string> = {
   info: 'info',
   warning: 'warning',
   
-  // Custom icons (using SF Symbols on iOS, Material on Android)
-  workbench: 'dashboard',
-  trace: 'track-changes',
-  watch: 'watch',
-  jump: 'directions-run',
+  // Bottom Navigation Icons (from Figma Dock)
+  workbench: 'dashboard', // Workbench/dashboard icon for home
+  trace: 'track-changes', // Trace/track changes icon for target/goals
+  watch: 'watch', // Watch icon for data
+  jump: 'directions-run', // Jump/run icon for tuki/twin
 };
 
 export const IconLibrary: React.FC<IconLibraryProps> = ({
@@ -58,7 +59,6 @@ export const IconLibrary: React.FC<IconLibraryProps> = ({
 }) => {
   const materialIconName = iconMap[iconName] || iconName;
 
-  // Use MaterialIcons for most icons
   return (
     <MaterialIcons
       name={materialIconName as any}
@@ -70,4 +70,3 @@ export const IconLibrary: React.FC<IconLibraryProps> = ({
 };
 
 export default IconLibrary;
-

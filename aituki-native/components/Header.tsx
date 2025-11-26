@@ -188,10 +188,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onAlertsPress }) => {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: Colors.light.primary,
+    backgroundColor: 'transparent',
   },
   header: {
-    backgroundColor: Colors.light.primary,
+    backgroundColor: 'transparent',
     borderBottomLeftRadius: BorderRadius.full,
     borderBottomRightRadius: BorderRadius.full,
     ...Shadows.medium,
@@ -202,6 +202,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
+    backgroundColor: Colors.light.primary,
   },
   iconButton: {
     width: 48,
@@ -225,6 +226,9 @@ const styles = StyleSheet.create({
   promptBar: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.lg,
+    backgroundColor: Colors.light.primary,
+    borderBottomLeftRadius: BorderRadius.full,
+    borderBottomRightRadius: BorderRadius.full,
   },
   promptButton: {
     backgroundColor: Colors.light.background,
