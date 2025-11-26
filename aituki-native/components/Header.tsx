@@ -1,0 +1,357 @@
+/**
+ * Header Component
+ * Matches Figma design with menu drawer and alerts
+ */
+
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Avatar, Badge, Divider, Chip } from 'react-native-paper';
+import { IconLibrary } from './IconLibrary';
+import { Colors, Typography, BorderRadius, Shadows, Spacing } from '@/constants/theme';
+import { useRouter } from 'expo-router';
+
+interface HeaderProps {
+  onMenuPress?: () => void;
+  onAlertsPress?: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ onMenuPress, onAlertsPress }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const router = useRouter();
+
+  const handleMenuPress = () => {
+    setMenuOpen(true);
+    onMenuPress?.();
+  };
+
+  const handleAlertsPress = () => {
+    setAlertsOpen(true);
+    onAlertsPress?.();
+  };
+
+  const navItems = [
+    { label: 'Home', path: '/', iconName: 'home' },
+    { label: 'Goals', path: '/goals', iconName: 'target' },
+    { label: 'Data', path: '/data', iconName: 'data' },
+    { label: 'Health', path: '/health', iconName: 'heart' },
+    { label: 'Twin', path: '/twin', iconName: 'person' },
+  ];
+
+  return (
+    <>
+      <SafeAreaView edges={['top']} style={styles.safeArea}>
+        <View style={styles.header}>
+          {/* Icon Bar */}
+          <View style={styles.iconBar}>
+            {/* Left side - Hamburger menu */}
+            <TouchableOpacity
+              onPress={handleMenuPress}
+              style={styles.iconButton}
+              activeOpacity={0.7}
+            >
+              <IconLibrary iconName="menu" size={24} color={Colors.light.text} />
+            </TouchableOpacity>
+
+            {/* Right side - Avatar with badge */}
+            <TouchableOpacity
+              onPress={handleAlertsPress}
+              style={styles.iconButton}
+              activeOpacity={0.7}
+            >
+              <View style={styles.badgeContainer}>
+                <Badge visible={true} size={12} style={styles.badge}>
+                  4
+                </Badge>
+                <Avatar.Icon
+                  size={40}
+                  icon={() => <IconLibrary iconName="user" size={24} color={Colors.light.text} />}
+                  style={styles.avatar}
+                />
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Prompt Bar */}
+          <View style={styles.promptBar}>
+            <TouchableOpacity style={styles.promptButton} activeOpacity={0.8}>
+              <Text style={styles.promptText}>Get help from your digital twin</Text>
+              <View style={styles.arrowContainer}>
+                <IconLibrary iconName="chevron-right" size={18} color={Colors.light.text} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+
+      {/* Menu Drawer Modal */}
+      <Modal
+        visible={menuOpen}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setMenuOpen(false)}
+      >
+        <TouchableOpacity
+          style={styles.drawerBackdrop}
+          activeOpacity={1}
+          onPress={() => setMenuOpen(false)}
+        >
+          <View style={styles.drawerContainer}>
+            <View style={styles.drawer} onStartShouldSetResponder={() => true}>
+              {/* Drawer Header */}
+              <View style={styles.drawerHeader}>
+                <View style={styles.drawerProfile}>
+                  <Avatar.Icon
+                    size={44}
+                    icon={() => <IconLibrary iconName="user" size={24} color={Colors.light.text} />}
+                    style={[styles.avatar, { borderWidth: 2, borderColor: Colors.light.primaryLight }]}
+                  />
+                  <View style={styles.drawerProfileInfo}>
+                    <Text style={styles.drawerProfileName}>Pilar</Text>
+                    <Chip
+                      style={styles.proChip}
+                      textStyle={styles.proChipText}
+                      mode="flat"
+                    >
+                      Pro member
+                    </Chip>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setMenuOpen(false)}
+                  style={styles.closeButton}
+                >
+                  <IconLibrary iconName="close" size={22} color={Colors.light.text} />
+                </TouchableOpacity>
+              </View>
+              <Divider />
+              
+              {/* Navigation Items */}
+              <View style={styles.drawerNavSection}>
+                <Text style={styles.drawerNavLabel}>Navigation</Text>
+                {navItems.map((item) => (
+                  <TouchableOpacity
+                    key={item.path}
+                    style={styles.drawerNavItem}
+                    onPress={() => {
+                      setMenuOpen(false);
+                      router.push(item.path as any);
+                    }}
+                  >
+                    <IconLibrary iconName={item.iconName} size={22} color={Colors.light.text} />
+                    <Text style={styles.drawerNavText}>{item.label}</Text>
+                    <IconLibrary iconName="chevron-right" size={20} color={Colors.light.textSecondary} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Alerts Drawer Modal */}
+      <Modal
+        visible={alertsOpen}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setAlertsOpen(false)}
+      >
+        <View style={styles.alertsContainer}>
+          <View style={styles.alertsHeader}>
+            <TouchableOpacity
+              onPress={() => setAlertsOpen(false)}
+              style={styles.closeButton}
+            >
+              <IconLibrary iconName="close" size={20} color={Colors.light.text} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.closeButton}>
+              <IconLibrary iconName="more-vert" size={20} color={Colors.light.text} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.alertsContent}>
+            {/* Alert items would go here */}
+            <Text style={styles.alertText}>Alerts content</Text>
+          </ScrollView>
+        </View>
+      </Modal>
+    </>
+  );
+};
+
+const styles = StyleSheet.create({
+  safeArea: {
+    backgroundColor: Colors.light.primary,
+  },
+  header: {
+    backgroundColor: Colors.light.primary,
+    borderBottomLeftRadius: BorderRadius.full,
+    borderBottomRightRadius: BorderRadius.full,
+    ...Shadows.medium,
+  },
+  iconBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+  },
+  iconButton: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeContainer: {
+    position: 'relative',
+  },
+  avatar: {
+    backgroundColor: Colors.light.primaryLight,
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: Colors.light.warning,
+    zIndex: 1,
+  },
+  promptBar: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.lg,
+  },
+  promptButton: {
+    backgroundColor: Colors.light.background,
+    borderRadius: BorderRadius.full,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md + 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+  },
+  promptText: {
+    fontFamily: Typography.fontFamily,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.regular,
+    color: Colors.light.text,
+    letterSpacing: Typography.letterSpacing.wider,
+  },
+  arrowContainer: {
+    width: 18,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Drawer styles
+  drawerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  drawerContainer: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  drawer: {
+    width: '80%',
+    maxWidth: 360,
+    backgroundColor: Colors.light.background,
+    borderTopRightRadius: BorderRadius.xl,
+    borderBottomRightRadius: BorderRadius.xl,
+    ...Shadows.large,
+  },
+  drawerHeader: {
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  drawerProfile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm + 4,
+  },
+  drawerProfileInfo: {
+    gap: Spacing.xs,
+  },
+  drawerProfileName: {
+    fontFamily: Typography.fontFamily,
+    fontWeight: Typography.fontWeight.bold,
+    fontSize: Typography.fontSize.base,
+    color: Colors.light.text,
+  },
+  proChip: {
+    height: 20,
+    backgroundColor: Colors.light.text,
+  },
+  proChipText: {
+    fontSize: 12,
+    color: Colors.light.background,
+    paddingHorizontal: 6,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  drawerNavSection: {
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm + 4,
+  },
+  drawerNavLabel: {
+    fontFamily: Typography.fontFamily,
+    fontWeight: Typography.fontWeight.medium,
+    fontSize: Typography.fontSize.xs,
+    color: Colors.light.textSecondary,
+    letterSpacing: 1.1,
+    marginBottom: Spacing.xs,
+  },
+  drawerNavItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm + 4,
+    gap: Spacing.sm + 4,
+  },
+  drawerNavText: {
+    flex: 1,
+    fontFamily: Typography.fontFamily,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.light.text,
+  },
+  // Alerts drawer styles
+  alertsContainer: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+    width: '100%',
+    maxWidth: 393,
+    alignSelf: 'flex-end',
+  },
+  alertsHeader: {
+    backgroundColor: Colors.light.primary,
+    paddingTop: Spacing.xl,
+    paddingHorizontal: Spacing.sm + 4,
+    paddingBottom: Spacing.sm + 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  alertsContent: {
+    flex: 1,
+    padding: Spacing.sm + 4,
+  },
+  alertText: {
+    fontFamily: Typography.fontFamily,
+    color: Colors.light.text,
+  },
+});
+
+export default Header;
+
