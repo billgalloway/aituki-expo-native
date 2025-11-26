@@ -8,6 +8,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "build": "expo export -p web",
+    "deploy": "npm run build && npx wrangler deploy",
     "lint": "expo lint"
   },
   "dependencies": {

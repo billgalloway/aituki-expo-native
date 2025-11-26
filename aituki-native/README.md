@@ -42,6 +42,26 @@ To learn more about developing your project with Expo, look at the following res
 - [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
 - [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
 
+## Build for Web Deployment
+
+To build the web version for deployment:
+
+```bash
+npm run build
+```
+
+This will create a `web-build` directory with the static web assets.
+
+## Cloudflare Pages Deployment
+
+For Cloudflare Pages deployment, configure the following settings:
+
+- **Build command**: `npm run build`
+- **Deploy command**: `npx wrangler deploy`
+- **Output directory**: `web-build`
+
+The `wrangler.jsonc` file is configured to deploy the `web-build` directory.
+
 ## Join the community
 
 Join our community of developers creating universal apps.
