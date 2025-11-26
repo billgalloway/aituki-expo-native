@@ -9,7 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build": "expo export -p web",
-    "deploy": "npm run build && npx wrangler deploy",
+    "pages:build": "expo export -p web",
     "lint": "expo lint"
   },
   "dependencies": {

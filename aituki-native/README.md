@@ -54,15 +54,17 @@ This will create a `web-build` directory with the static web assets.
 
 ## Cloudflare Pages Deployment
 
-For Cloudflare Pages deployment, configure the following settings:
+For Cloudflare Pages deployment, configure the following settings in your Cloudflare Pages dashboard:
 
-- **Build command**: `npm run build` (or leave empty if using deploy command)
-- **Deploy command**: `npm run deploy` (this will build first, then deploy)
+- **Build command**: `npm run build`
 - **Output directory**: `web-build`
+- **Root directory**: (leave empty or set to project root)
+- **Node version**: `22.16.0` (or latest LTS)
 
-**Important**: The deploy command must run the build first. Use `npm run deploy` instead of `npx wrangler deploy` directly.
-
-The `wrangler.jsonc` file is configured to deploy the `web-build` directory.
+**Important**: 
+- Do NOT set a deploy command - Cloudflare Pages will automatically deploy from the output directory
+- The build command will create the `web-build` directory with static files
+- Make sure Node.js version is set to 22.x or later in environment variables
 
 ## Join the community
 
