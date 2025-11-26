@@ -25,9 +25,12 @@ const iconMap: Record<string, string> = {
   
   // Actions
   plus: 'add',
+  add: 'add',
   search: 'search',
   filter: 'filter-list',
   settings: 'settings',
+  edit: 'edit',
+  send: 'send',
   
   // Health & Wellness
   target: 'gps-fixed',
@@ -35,8 +38,13 @@ const iconMap: Record<string, string> = {
   heart: 'favorite',
   heartRate: 'favorite-border',
   'heart-rate': 'monitor-heart', // Heart rate monitor icon
+  measure: 'straighten', // Measurement icon for health tab
   person: 'person',
   user: 'person-outline',
+  
+  // Medical & Fitness
+  'local-hospital': 'local-hospital',
+  'fitness-center': 'fitness-center',
   
   // Status
   check: 'check',
@@ -44,11 +52,18 @@ const iconMap: Record<string, string> = {
   info: 'info',
   warning: 'warning',
   
+  // UI Elements
+  'calendar-today': 'calendar-today',
+  language: 'language',
+  'drag-indicator': 'drag-indicator',
+  mic: 'mic',
+  
   // Bottom Navigation Icons (from Figma Dock)
   workbench: 'dashboard', // Workbench/dashboard icon for home
   trace: 'track-changes', // Trace/track changes icon for target/goals
   watch: 'watch', // Watch icon for data
   jump: 'directions-run', // Jump/run icon for tuki/twin
+  tuki: 'person', // Tuki/digital twin icon
 };
 
 export const IconLibrary: React.FC<IconLibraryProps> = ({
