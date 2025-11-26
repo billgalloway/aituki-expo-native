@@ -54,17 +54,23 @@ This will create a `web-build` directory with the static web assets.
 
 ## Cloudflare Pages Deployment
 
-For Cloudflare Pages deployment, configure the following settings in your Cloudflare Pages dashboard:
+For Cloudflare Pages deployment, you **MUST** configure the following settings in your Cloudflare Pages dashboard:
 
-- **Build command**: `npm run build`
-- **Output directory**: `web-build`
-- **Root directory**: (leave empty or set to project root)
-- **Node version**: `22.16.0` (or latest LTS)
+### Required Settings:
 
-**Important**: 
-- Do NOT set a deploy command - Cloudflare Pages will automatically deploy from the output directory
-- The build command will create the `web-build` directory with static files
-- Make sure Node.js version is set to 22.x or later in environment variables
+1. **Framework preset**: Select "None" or "Other" (do NOT use React or React Static)
+2. **Build command**: `npm run build`
+3. **Output directory**: `web-build`
+4. **Root directory**: (leave empty)
+5. **Environment variables**: 
+   - `NODE_VERSION`: `22.16.0` (or latest LTS)
+
+### Important Notes:
+
+- **Do NOT** let Cloudflare auto-detect the framework - it will incorrectly try to use `react-static build`
+- **Do NOT** set a deploy command - Cloudflare Pages will automatically deploy from the output directory
+- The build command (`npm run build`) will run `expo export -p web` which creates the `web-build` directory
+- Make sure to manually set the build command to `npm run build` in the Cloudflare Pages dashboard
 
 ## Join the community
 
