@@ -5,35 +5,43 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
 import IconLibrary from '@/components/IconLibrary';
+import ImageLibrary from '@/components/ImageLibrary';
 
 const heroPrograms = [
   {
     title: 'Perimenopause tracking',
     duration: '8 weeks • Day 15 • 35-45 min pw',
+    image: ImageLibrary.hero.perimenopause,
   },
   {
     title: 'Yoga and Pilates',
     duration: '8 weeks • Day 15 • 35-45 min pw',
+    image: ImageLibrary.hero.yoga,
   },
   {
     title: 'Mindfulness or meditation',
     duration: '8 weeks • Day 15 • 35-45 min pw',
+    image: ImageLibrary.hero.mindfulness,
   },
   {
     title: 'Meal planning & Mindful eating',
     duration: '8 weeks • Day 15 • 35-45 min pw',
+    image: ImageLibrary.hero.mealPlanning,
   },
   {
     title: 'Sleep routine',
     duration: '8 weeks • Day 15 • 35-45 min pw',
+    image: ImageLibrary.hero.sleep,
   },
   {
     title: 'Symptom tracking',
     duration: '8 weeks • Day 15 • 35-45 min pw',
+    image: ImageLibrary.hero.symptomTracking,
   },
 ];
 
@@ -43,6 +51,7 @@ const todayActivities = [
     time: '20.30 am',
     description: '15 min relaxation',
     status: 'completed',
+    image: ImageLibrary.today.meditation,
   },
   {
     title: 'Perimenopause',
@@ -50,24 +59,28 @@ const todayActivities = [
     status: 'High',
     description: 'Check weekly levels',
     isHigh: true,
+    image: ImageLibrary.today.perimenopause,
   },
   {
     title: 'Diet',
     time: '12.30 am',
     description: '20 min cycling',
     status: 'completed',
+    image: ImageLibrary.today.diet,
   },
   {
     title: 'Adaptogen therapy',
     time: '8.30 am',
     description: 'Reishi mushroom',
     status: 'completed',
+    image: ImageLibrary.today.therapy,
   },
   {
     title: 'Exercise',
     time: '12.30 am',
     description: '20 min cycling',
     status: 'completed',
+    image: ImageLibrary.today.exercise,
   },
 ];
 
@@ -78,6 +91,7 @@ const suggestions = [
     rating: 4.5,
     reviews: 145,
     users: 1024,
+    image: ImageLibrary.suggestions.hormoneTherapy,
   },
   {
     title: 'Managing your weight',
@@ -85,6 +99,7 @@ const suggestions = [
     rating: 4.5,
     reviews: 145,
     users: 1024,
+    image: ImageLibrary.suggestions.weightManagement,
   },
   {
     title: 'Fitness and strength',
@@ -92,6 +107,7 @@ const suggestions = [
     rating: 4.5,
     reviews: 145,
     users: 1024,
+    image: ImageLibrary.suggestions.fitness,
   },
   {
     title: 'Reducing stress',
@@ -99,6 +115,7 @@ const suggestions = [
     rating: 4.5,
     reviews: 145,
     users: 1024,
+    image: ImageLibrary.suggestions.stressReduction,
   },
   {
     title: 'Managing a condition',
@@ -106,6 +123,7 @@ const suggestions = [
     rating: 4.5,
     reviews: 145,
     users: 1024,
+    image: ImageLibrary.suggestions.conditionManagement,
   },
 ];
 
@@ -121,7 +139,12 @@ export default function HomeScreen() {
           contentContainerStyle={styles.heroScroll}>
           {heroPrograms.map((program, index) => (
             <View key={index} style={styles.heroCard}>
-              <View style={styles.heroImagePlaceholder} />
+              <Image
+                source={{ uri: program.image }}
+                style={styles.heroImage}
+                contentFit="cover"
+                transition={200}
+              />
               <View style={styles.heroContent}>
                 <View style={styles.heroHeader}>
                   <Text style={styles.heroTitle}>{program.title}</Text>
@@ -156,7 +179,12 @@ export default function HomeScreen() {
                   <View style={styles.dot} />
                 </View>
               </View>
-              <View style={styles.todayImagePlaceholder} />
+              <Image
+                source={{ uri: activity.image }}
+                style={styles.todayImage}
+                contentFit="contain"
+                transition={200}
+              />
               <View style={styles.todayFooter}>
                 <Text style={[styles.todayValue, activity.isHigh && styles.todayValueHigh]}>
                   {activity.time || activity.value}
@@ -186,7 +214,12 @@ export default function HomeScreen() {
         {suggestions.map((suggestion, index) => (
           <View key={index} style={styles.suggestionCard}>
             <View style={styles.suggestionHeader}>
-              <View style={styles.suggestionImagePlaceholder} />
+              <Image
+                source={{ uri: suggestion.image }}
+                style={styles.suggestionImage}
+                contentFit="cover"
+                transition={200}
+              />
               <View style={styles.suggestionContent}>
                 <Text style={styles.suggestionTitle}>{suggestion.title}</Text>
                 <View style={styles.suggestionRating}>
@@ -240,10 +273,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.background,
     overflow: 'hidden',
   },
-  heroImagePlaceholder: {
+  heroImage: {
     width: '100%',
     height: 170,
-    backgroundColor: 'rgba(31, 86, 97, 0.1)',
   },
   heroContent: {
     padding: Spacing.md,
@@ -319,9 +351,8 @@ const styles = StyleSheet.create({
     borderRadius: 4.809,
     backgroundColor: Colors.light.primary,
   },
-  todayImagePlaceholder: {
+  todayImage: {
     flex: 1,
-    backgroundColor: 'rgba(31, 86, 97, 0.05)',
     marginVertical: Spacing.sm,
   },
   todayFooter: {
@@ -374,11 +405,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     alignItems: 'flex-start',
   },
-  suggestionImagePlaceholder: {
+  suggestionImage: {
     width: 71.718,
     height: 74.341,
     borderRadius: BorderRadius.sm,
-    backgroundColor: 'rgba(31, 86, 97, 0.1)',
   },
   suggestionContent: {
     flex: 1,
