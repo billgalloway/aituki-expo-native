@@ -1,0 +1,69 @@
+{
+  "expo": {
+    "name": "AiTuki",
+    "slug": "aituki-native",
+    "version": "1.0.1",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "aitukinative",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aituki.mobile",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.aituki.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "backgroundColor": "#000000"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cafdb2fb-73c0-4197-b9b0-479366a3a175"
+      },
+      "EXPO_PUBLIC_CONTENTFUL_SPACE_ID": "khv3gydijy42",
+      "EXPO_PUBLIC_CONTENTFUL_ACCESS_TOKEN": "7QpbzAYqvMOCfz8Zs1x9YJp_aAteBqqfIbFUZIfRhCc"
+    },
+    "owner": "billgalloway",
+    "updates": {
+      "url": "https://u.expo.dev/cafdb2fb-73c0-4197-b9b0-479366a3a175"
+    }
+  }
+}

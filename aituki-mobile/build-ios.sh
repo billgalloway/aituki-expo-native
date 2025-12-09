@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Script to build iOS app for App Store
+# Usage: ./build-ios.sh [preview|production]
+
+PROFILE=${1:-preview}
+
+echo "🍎 Building iOS app..."
+echo "   Profile: $PROFILE"
+echo ""
+
+# Check if logged in
+if ! eas whoami &>/dev/null; then
+    echo "❌ Not logged into EAS. Please run: eas login"
+    exit 1
+fi
+
+echo "✅ Logged into EAS"
+echo ""
+
+if [ "$PROFILE" = "production" ]; then
+    echo "📦 Building for App Store..."
+    echo "   This will take 10-20 minutes"
+    echo ""
+    eas build --platform ios --profile production
+else
+    echo "📦 Building for testing (preview)..."
+    echo "   This will take 10-20 minutes"
+    echo ""
+    eas build --platform ios --profile preview
+fi
+
+echo ""
+echo "✅ Build started! Check status with: eas build:list"
+echo "📱 Once complete, submit with: eas submit --platform ios --latest"
+
