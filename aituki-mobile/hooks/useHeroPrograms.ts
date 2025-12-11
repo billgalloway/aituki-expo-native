@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { fetchHeroPrograms, HeroProgram } from '@/services/contentful';
 import ImageLibrary from '@/components/ImageLibrary';
+import Constants from 'expo-constants';
 
 // Helper function to format duration (same as in contentful.ts)
 function formatDuration(weeks: number, days: number, minPerWeek: number): string {
@@ -92,14 +93,23 @@ export function useHeroPrograms() {
         
         console.log('useHeroPrograms: Starting to load hero programs...');
         
-        // Check if Contentful is configured
-        const spaceId = process.env.EXPO_PUBLIC_CONTENTFUL_SPACE_ID;
-        const accessToken = process.env.EXPO_PUBLIC_CONTENTFUL_ACCESS_TOKEN;
+        // Check if Contentful is configured - use Constants for production builds
+        // Same pattern as contentful.ts service
+        const getEnvVar = (key: string): string => {
+          return Constants.expoConfig?.extra?.[key] || 
+                 process.env[key] || 
+                 '';
+        };
+        
+        const spaceId = getEnvVar('EXPO_PUBLIC_CONTENTFUL_SPACE_ID');
+        const accessToken = getEnvVar('EXPO_PUBLIC_CONTENTFUL_ACCESS_TOKEN');
         
         console.log('useHeroPrograms: Environment check:', {
           hasSpaceId: !!spaceId,
           hasAccessToken: !!accessToken,
           spaceIdLength: spaceId?.length || 0,
+          hasConstants: !!Constants.expoConfig?.extra,
+          hasProcessEnv: !!process.env.EXPO_PUBLIC_CONTENTFUL_SPACE_ID,
         });
         
         if (!spaceId || !accessToken) {

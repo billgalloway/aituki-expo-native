@@ -2,7 +2,7 @@
   "expo": {
     "name": "AiTuki",
     "slug": "aituki-native",
-    "version": "1.0.1",
+    "version": "2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "aitukinative",
@@ -11,13 +11,14 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.aituki.mobile",
-      "buildNumber": "1",
+      "buildNumber": "4",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.aituki.mobile",
+      "versionCode": 6,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -53,14 +54,16 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "cafdb2fb-73c0-4197-b9b0-479366a3a175"
-      },
-      "EXPO_PUBLIC_CONTENTFUL_SPACE_ID": "khv3gydijy42",
-      "EXPO_PUBLIC_CONTENTFUL_ACCESS_TOKEN": "7QpbzAYqvMOCfz8Zs1x9YJp_aAteBqqfIbFUZIfRhCc"
-    },
+          "extra": {
+            "router": {},
+            "eas": {
+              "projectId": "cafdb2fb-73c0-4197-b9b0-479366a3a175"
+            },
+            "EXPO_PUBLIC_CONTENTFUL_SPACE_ID": "khv3gydijy42",
+            "EXPO_PUBLIC_CONTENTFUL_ACCESS_TOKEN": "7QpbzAYqvMOCfz8Zs1x9YJp_aAteBqqfIbFUZIfRhCc",
+            "EXPO_PUBLIC_SUPABASE_URL": "https://hhdntbgtedclqqufpzfj.supabase.co",
+            "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhoZG50Ymd0ZWRjbHFxdWZwemZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0MDg3NzEsImV4cCI6MjA4MDk4NDc3MX0.u_a-sUQT78uWVDBgoB_Cfjkom865UfwIRGpKwzSzeSc"
+          },
     "owner": "billgalloway",
     "updates": {
       "url": "https://u.expo.dev/cafdb2fb-73c0-4197-b9b0-479366a3a175"

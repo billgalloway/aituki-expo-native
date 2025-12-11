@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">= 13.2.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
@@ -54,9 +54,9 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "your-apple-id@example.com",
-        "ascAppId": "your-app-store-connect-app-id",
-        "appleTeamId": "your-team-id"
+        "appleId": "bill_galloway@icloud.com",
+        "ascAppId": "6756360703",
+        "appleTeamId": "J2HMNHZVM9"
       },
       "android": {
         "serviceAccountKeyPath": "./google-play-api-key.json",

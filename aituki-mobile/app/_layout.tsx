@@ -1,6 +1,6 @@
 /**
  * Root Layout
- * Sets up React Native Paper theme provider
+ * Sets up React Native Paper theme provider and Auth context
  */
 
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
@@ -12,6 +12,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { PaperThemeLight, PaperThemeDark, Colors } from '@/constants/theme';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -25,17 +26,20 @@ export default function RootLayout() {
   const statusBarStyle = isDark ? 'light-content' : 'dark-content';
 
   return (
-    <PaperProvider theme={paperTheme}>
-      <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-        {Platform.OS === 'android' && (
-          <RNStatusBar backgroundColor={statusBarColor} barStyle={statusBarStyle} />
-        )}
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        </Stack>
-        <ExpoStatusBar style={isDark ? 'light' : 'dark'} />
-      </ThemeProvider>
-    </PaperProvider>
+    <AuthProvider>
+      <PaperProvider theme={paperTheme}>
+        <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
+          {Platform.OS === 'android' && (
+            <RNStatusBar backgroundColor={statusBarColor} barStyle={statusBarStyle} />
+          )}
+          <Stack>
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          </Stack>
+          <ExpoStatusBar style={isDark ? 'light' : 'dark'} />
+        </ThemeProvider>
+      </PaperProvider>
+    </AuthProvider>
   );
 }

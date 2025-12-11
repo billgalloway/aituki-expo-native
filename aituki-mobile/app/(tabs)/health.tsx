@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabActive: {
-    borderBottomColor: Colors.light.accent,
+    borderBottomColor: Colors.light.primary,
   },
   tabText: {
     fontFamily: Typography.fontFamily,
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.light.accent,
+    backgroundColor: Colors.light.primary,
   },
   addDataText: {
     fontFamily: Typography.fontFamily,
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   },
   metricDivider: {
     height: 1,
-    backgroundColor: Colors.light.accent,
+    backgroundColor: Colors.light.primary,
   },
   metricValues: {
     gap: Spacing.xs,

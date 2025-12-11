@@ -18,6 +18,7 @@ import { IconLibrary } from './IconLibrary';
 import { Colors, Typography, BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface HeaderProps {
   onMenuPress?: () => void;
@@ -31,6 +32,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onAlertsPress }) => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const themeColors = isDark ? Colors.dark : Colors.light;
+  const { user, signOut } = useAuth();
 
   const handleMenuPress = () => {
     setMenuOpen(true);
@@ -238,7 +240,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onAlertsPress }) => {
                   style={[dynamicStyles.avatar, { borderWidth: 2, borderColor: themeColors.primaryLight }]}
                   />
                   <View style={styles.drawerProfileInfo}>
-                    <Text style={dynamicStyles.drawerProfileName}>Pilar</Text>
+                    <Text style={dynamicStyles.drawerProfileName}>
+                      {user?.email?.split('@')[0] || 'User'}
+                    </Text>
                     <Chip
                       style={dynamicStyles.proChip}
                       textStyle={dynamicStyles.proChipText}
@@ -274,6 +278,23 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onAlertsPress }) => {
                     <IconLibrary iconName="chevron-right" size={20} color={themeColors.textSecondary} />
                   </TouchableOpacity>
                 ))}
+              </View>
+              
+              {/* Logout Button */}
+              <Divider />
+              <View style={styles.drawerNavSection}>
+                <TouchableOpacity
+                  style={styles.drawerNavItem}
+                  onPress={async () => {
+                    setMenuOpen(false);
+                    await signOut();
+                  }}
+                >
+                  <IconLibrary iconName="close" size={22} color={themeColors.error} />
+                  <Text style={[dynamicStyles.drawerNavText, { color: themeColors.error }]}>
+                    Sign Out
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>

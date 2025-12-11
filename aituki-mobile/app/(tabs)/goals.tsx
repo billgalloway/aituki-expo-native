@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: Colors.light.accent,
+    borderColor: Colors.light.primary,
     backgroundColor: Colors.light.background,
   },
   newGoalText: {
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: Colors.light.accent,
+    backgroundColor: Colors.light.primary,
     borderRadius: BorderRadius.sm,
   },
   daysRemaining: {
