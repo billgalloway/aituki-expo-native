@@ -53,17 +53,29 @@ export default function AuthCallback() {
 
       // Handle OAuth callback (code parameter)
       if (params?.code) {
+        console.log('📞 OAuth callback received with code:', params.code);
         // Exchange code for session
         const { data, error } = await supabase.auth.exchangeCodeForSession(params.code as string);
         
         if (error) {
-          console.error('Auth callback error:', error);
+          console.error('❌ Auth callback error:', error);
           router.replace('/(auth)/login');
         } else if (data.session) {
+          console.log('✅ OAuth authentication successful');
           // Successfully authenticated, navigate to main app
           router.replace('/(tabs)');
+        } else {
+          console.error('❌ No session after code exchange');
+          router.replace('/(auth)/login');
         }
       } else {
+        // Check for error parameter
+        if (params?.error) {
+          console.error('❌ OAuth callback error:', params.error);
+        } else {
+          console.log('⚠️ OAuth callback received without code parameter');
+          console.log('⚠️ All params received:', JSON.stringify(params, null, 2));
+        }
         // No valid parameters, redirect to login
         router.replace('/(auth)/login');
       }

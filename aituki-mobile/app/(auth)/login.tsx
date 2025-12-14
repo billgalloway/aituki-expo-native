@@ -1,6 +1,6 @@
 /**
  * Login Screen
- * Email/password login with Apple and Google OAuth options
+ * Matches Figma LoginRegister component design exactly
  */
 
 import React, { useState } from 'react';
@@ -14,6 +14,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Image,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
@@ -48,21 +49,47 @@ export default function LoginScreen() {
 
   const handleAppleLogin = async () => {
     setLoading(true);
-    const { error } = await signInWithApple();
+    console.log('🍎 Apple Sign-In button clicked');
+    const { error, debugInfo } = await signInWithApple();
     setLoading(false);
 
     if (error) {
-      Alert.alert('Apple Sign-In Failed', error.message);
+      console.error('❌ Apple Sign-In error:', error);
+      // Show detailed error message for debugging
+      const errorMessage = debugInfo 
+        ? `${error.message}\n\nDebug Info:\n${JSON.stringify(debugInfo, null, 2)}`
+        : error.message || 'Unable to sign in with Apple. Please check your configuration or try again.';
+      
+      Alert.alert(
+        'Apple Sign-In Failed',
+        errorMessage,
+        [{ text: 'OK' }]
+      );
+    } else {
+      console.log('✅ Apple Sign-In completed successfully');
     }
   };
 
   const handleGoogleLogin = async () => {
     setLoading(true);
-    const { error } = await signInWithGoogle();
+    console.log('🔵 Google Sign-In button clicked');
+    const { error, debugInfo } = await signInWithGoogle();
     setLoading(false);
 
     if (error) {
-      Alert.alert('Google Sign-In Failed', error.message);
+      console.error('❌ Google Sign-In error:', error);
+      // Show detailed error message for debugging
+      const errorMessage = debugInfo 
+        ? `${error.message}\n\nDebug Info:\n${JSON.stringify(debugInfo, null, 2)}`
+        : error.message || 'Unable to sign in with Google. Please check your configuration or try again.';
+      
+      Alert.alert(
+        'Google Sign-In Failed',
+        errorMessage,
+        [{ text: 'OK' }]
+      );
+    } else {
+      console.log('✅ Google Sign-In completed successfully');
     }
   };
 
@@ -95,140 +122,153 @@ export default function LoginScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled">
         <View style={styles.content}>
-          {/* Logo/App Name */}
+          {/* Logo and Title Section */}
           <View style={styles.header}>
-            <Text style={[styles.title, { color: themeColors.text }]}>Welcome to AiTuki</Text>
-            <Text style={[styles.subtitle, { color: themeColors.textSecondary }]}>
-              Sign in to continue
-            </Text>
+            <Image
+              source={require('@/assets/images/icon.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+            <Text style={styles.subtitle}>Sign in to continue</Text>
           </View>
 
-          {/* Email/Password Form */}
-          <View style={styles.form}>
-            <View style={styles.inputContainer}>
-              <IconLibrary iconName="email" size={20} color={themeColors.textSecondary} />
-              <TextInput
-                style={[styles.input, { color: themeColors.text }]}
-                placeholder="Email"
-                placeholderTextColor={themeColors.textSecondary}
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                autoComplete="email"
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <IconLibrary iconName="lock" size={20} color={themeColors.textSecondary} />
-              <TextInput
-                style={[styles.input, { color: themeColors.text }]}
-                placeholder="Password"
-                placeholderTextColor={themeColors.textSecondary}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoCapitalize="none"
-                autoComplete="password"
-              />
-            </View>
-
-            <TouchableOpacity
-              style={[styles.primaryButton, { backgroundColor: Colors.light.primary }]}
-              onPress={handleEmailLogin}
-              disabled={loading}>
-              <Text style={styles.primaryButtonText}>Sign In</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.forgotPassword}
-              onPress={() => setShowForgotPassword(true)}>
-              <Text style={[styles.forgotPasswordText, { color: themeColors.textSecondary }]}>
-                Forgot password?
-              </Text>
-            </TouchableOpacity>
-
-            {showForgotPassword && (
-              <View style={styles.forgotPasswordContainer}>
-                <Text style={[styles.forgotPasswordTitle, { color: themeColors.text }]}>
-                  Reset Password
-                </Text>
-                <Text style={[styles.forgotPasswordDescription, { color: themeColors.textSecondary }]}>
-                  Enter your email address and we'll send you instructions to reset your password.
-                </Text>
+          {/* Card Content - Form */}
+          <View style={styles.cardContent}>
+            <View style={styles.form}>
+              {/* Email Input */}
+              <View style={styles.inputWrapper}>
                 <View style={styles.inputContainer}>
-                  <IconLibrary iconName="email" size={20} color={themeColors.textSecondary} />
                   <TextInput
-                    style={[styles.input, { color: themeColors.text }]}
+                    style={styles.input}
                     placeholder="Email"
-                    placeholderTextColor={themeColors.textSecondary}
+                    placeholderTextColor="#24262f"
                     value={email}
                     onChangeText={setEmail}
                     autoCapitalize="none"
                     keyboardType="email-address"
                     autoComplete="email"
-                    editable={!loading}
                   />
                 </View>
-                <View style={styles.forgotPasswordButtons}>
+              </View>
+
+              {/* Password Input */}
+              <View style={styles.inputWrapper}>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    placeholderTextColor="#24262f"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoComplete="password"
+                  />
+                </View>
+              </View>
+            </View>
+
+            {/* Login Button */}
+            <View style={styles.buttonsContainer}>
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={handleEmailLogin}
+                disabled={loading}>
+                <View style={styles.primaryButtonContent}>
+                  <Text style={styles.primaryButtonText}>Login to AiTuki</Text>
+                  <IconLibrary iconName="chevron-right" size={18} color={Colors.light.text} />
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Forgotten Password Link */}
+            {!showForgotPassword && (
+              <TouchableOpacity
+                style={styles.forgotPasswordLink}
+                onPress={() => setShowForgotPassword(true)}>
+                <Text style={styles.forgotPasswordText}>Forgotten Password?</Text>
+              </TouchableOpacity>
+            )}
+
+            {showForgotPassword && (
+              <View style={styles.forgotPasswordHeader}>
+                <Text style={styles.forgotPasswordTitle}>Update your password</Text>
+              </View>
+            )}
+
+            {showForgotPassword && (
+              <View style={styles.forgotPasswordContainer}>
+                <View style={styles.form}>
+                  <View style={styles.inputWrapper}>
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Email address"
+                        placeholderTextColor="#24262f"
+                        value={email}
+                        onChangeText={setEmail}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                        autoComplete="email"
+                        editable={!loading}
+                      />
+                    </View>
+                  </View>
+                </View>
+                <View style={styles.buttonsContainer}>
                   <TouchableOpacity
-                    style={[styles.secondaryButton, { borderColor: themeColors.border }]}
-                    onPress={() => setShowForgotPassword(false)}
-                    disabled={loading}>
-                    <Text style={[styles.secondaryButtonText, { color: themeColors.text }]}>
-                      Cancel
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.primaryButton, { backgroundColor: Colors.light.primary }]}
+                    style={styles.primaryButton}
                     onPress={handleForgotPassword}
                     disabled={loading}>
-                    <Text style={styles.primaryButtonText}>
-                      {loading ? 'Sending...' : 'Send Reset Email'}
-                    </Text>
+                    <View style={styles.primaryButtonContent}>
+                      <Text style={styles.primaryButtonText}>
+                        {loading ? 'Sending...' : 'Update password'}
+                      </Text>
+                      <IconLibrary iconName="chevron-right" size={18} color={Colors.light.text} />
+                    </View>
                   </TouchableOpacity>
                 </View>
               </View>
             )}
           </View>
 
-          {/* Divider */}
-          <View style={styles.divider}>
-            <View style={[styles.dividerLine, { backgroundColor: themeColors.divider }]} />
-            <Text style={[styles.dividerText, { color: themeColors.textSecondary }]}>OR</Text>
-            <View style={[styles.dividerLine, { backgroundColor: themeColors.divider }]} />
-          </View>
-
-          {/* OAuth Buttons */}
-          <View style={styles.oauthContainer}>
+          {/* Social Login Section */}
+          <View style={styles.socialLoginSection}>
+            {/* Continue with Gmail */}
             <TouchableOpacity
-              style={[styles.oauthButton, { borderColor: themeColors.border }]}
-              onPress={handleAppleLogin}
-              disabled={loading}>
-              <IconLibrary iconName="apple" size={24} color={themeColors.text} />
-              <Text style={[styles.oauthButtonText, { color: themeColors.text }]}>
-                Continue with Apple
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.oauthButton, { borderColor: themeColors.border }]}
+              style={styles.socialButton}
               onPress={handleGoogleLogin}
               disabled={loading}>
-              <IconLibrary iconName="google" size={24} color={themeColors.text} />
-              <Text style={[styles.oauthButtonText, { color: themeColors.text }]}>
-                Continue with Google
-              </Text>
+              <View style={styles.socialButtonContent}>
+                <IconLibrary iconName="google" size={24} color={Colors.light.text} />
+                <Text style={styles.socialButtonText}>Continue with Gmail</Text>
+              </View>
             </TouchableOpacity>
-          </View>
 
-          {/* Sign Up Link */}
-          <View style={styles.signUpContainer}>
-            <Text style={[styles.signUpText, { color: themeColors.textSecondary }]}>
-              Don't have an account?{' '}
-            </Text>
-            <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-              <Text style={[styles.signUpLink, { color: Colors.light.primary }]}>Sign Up</Text>
+            {/* Continue with Apple */}
+            <TouchableOpacity
+              style={styles.socialButton}
+              onPress={handleAppleLogin}
+              disabled={loading}>
+              <View style={styles.socialButtonContent}>
+                <IconLibrary iconName="apple" size={24} color={Colors.light.text} />
+                <Text style={styles.socialButtonText}>Continue with Apple</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Sign in with email */}
+            <TouchableOpacity
+              style={styles.outlinedButton}
+              onPress={handleEmailLogin}
+              disabled={loading}>
+              <Text style={styles.outlinedButtonText}>Sign in with email</Text>
+            </TouchableOpacity>
+
+            {/* Sign up another way */}
+            <TouchableOpacity
+              style={styles.signUpLink}
+              onPress={() => router.push('/(auth)/register')}>
+              <Text style={styles.signUpLinkText}>Sign up another way</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -245,149 +285,188 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: Spacing.lg,
+    padding: Spacing.md,
   },
   content: {
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 439,
     alignSelf: 'center',
   },
   header: {
     alignItems: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    width: '100%',
   },
-  title: {
-    fontFamily: Typography.fontFamily,
-    fontSize: Typography.fontSize.xl * 1.5,
-    fontWeight: Typography.fontWeight.bold,
-    marginBottom: Spacing.xs,
+  logo: {
+    width: 124,
+    height: 50,
+    marginBottom: Spacing.sm,
   },
   subtitle: {
     fontFamily: Typography.fontFamily,
     fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.regular,
+    color: Colors.light.text, // #1f5661
+    lineHeight: 24,
+    letterSpacing: 0.15,
+    width: '100%',
+    textAlign: 'left',
+  },
+  cardContent: {
+    gap: Spacing.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
   },
   form: {
-    marginBottom: Spacing.lg,
+    gap: Spacing.md,
+  },
+  inputWrapper: {
+    width: '100%',
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.light.border,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.md,
+    borderColor: 'rgba(0, 0, 0, 0.23)',
+    borderRadius: 9999, // Full rounded (pill shape) as per Figma
+    paddingHorizontal: 32, // var(--sds-size-space-800,32px) from Figma
+    paddingVertical: 16,
     backgroundColor: Colors.light.surface,
-    gap: Spacing.sm,
+    minHeight: 56,
+    justifyContent: 'center',
   },
   input: {
+    fontFamily: 'Open Sans',
+    fontSize: 16,
+    fontWeight: '400',
+    lineHeight: 24,
+    letterSpacing: 0.15,
+    color: '#24262f', // Text secondary color from Figma
     flex: 1,
-    fontFamily: Typography.fontFamily,
-    fontSize: Typography.fontSize.base,
-    paddingVertical: Spacing.md,
+  },
+  buttonsContainer: {
+    gap: 0,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
   },
   primaryButton: {
-    borderRadius: BorderRadius.full,
-    paddingVertical: Spacing.md,
+    backgroundColor: Colors.light.primary, // #69f0f0
+    borderRadius: 32,
+    paddingVertical: 8,
+    paddingHorizontal: 22,
     alignItems: 'center',
-    marginTop: Spacing.sm,
+    justifyContent: 'center',
+    flex: 1,
+  },
+  primaryButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   primaryButtonText: {
     fontFamily: Typography.fontFamily,
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium,
-    color: Colors.light.text,
+    fontSize: 15, // var(--_fontsize/0,9375rem,15px) from Figma
+    fontWeight: Typography.fontWeight.medium, // 500 (Medium) as per Figma
+    color: Colors.light.text, // #1f5661
+    lineHeight: 26, // button/large lineHeight from Figma
+    letterSpacing: 0.46, // button/large letterSpacing from Figma
   },
-  forgotPassword: {
+  forgotPasswordLink: {
     alignItems: 'center',
-    marginTop: Spacing.md,
+    marginTop: Spacing.sm,
   },
   forgotPasswordText: {
     fontFamily: Typography.fontFamily,
-    fontSize: Typography.fontSize.sm,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.regular,
+    color: Colors.light.text, // #1f5661
+    textDecorationLine: 'underline',
+    lineHeight: 24,
+    letterSpacing: 0.15,
   },
-  forgotPasswordContainer: {
-    marginTop: Spacing.lg,
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.light.surface,
+  forgotPasswordHeader: {
+    width: '100%',
+    marginTop: Spacing.sm,
   },
   forgotPasswordTitle: {
     fontFamily: Typography.fontFamily,
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.bold,
-    marginBottom: Spacing.xs,
-  },
-  forgotPasswordDescription: {
-    fontFamily: Typography.fontFamily,
-    fontSize: Typography.fontSize.sm,
-    marginBottom: Spacing.md,
-  },
-  forgotPasswordButtons: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginTop: Spacing.sm,
-  },
-  secondaryButton: {
-    flex: 1,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    fontFamily: Typography.fontFamily,
     fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium,
+    fontWeight: Typography.fontWeight.regular,
+    color: Colors.light.text, // #1f5661
+    lineHeight: 24,
+    letterSpacing: 0.15,
+    width: '100%',
+    textAlign: 'left',
   },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: Spacing.lg,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    fontFamily: Typography.fontFamily,
-    fontSize: Typography.fontSize.sm,
-    marginHorizontal: Spacing.md,
-  },
-  oauthContainer: {
+  forgotPasswordContainer: {
+    marginTop: Spacing.md,
     gap: Spacing.md,
-    marginBottom: Spacing.lg,
   },
-  oauthButton: {
-    flexDirection: 'row',
+  socialLoginSection: {
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: 12,
+  },
+  socialButton: {
+    backgroundColor: 'rgba(239, 255, 255, 0.8)',
+    borderWidth: 1,
+    borderColor: Colors.light.primaryDark, // #27cccc
+    borderRadius: 64,
+    minHeight: 47,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.md,
-    gap: Spacing.sm,
-    backgroundColor: Colors.light.surface,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
   },
-  oauthButtonText: {
-    fontFamily: Typography.fontFamily,
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  signUpContainer: {
+  socialButtonContent: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: Spacing.lg,
+    alignItems: 'center',
+    gap: 8,
   },
-  signUpText: {
+  socialButtonText: {
     fontFamily: Typography.fontFamily,
-    fontSize: Typography.fontSize.base,
+    fontSize: 14,
+    fontWeight: Typography.fontWeight.regular,
+    color: Colors.light.text, // #1f5661
+    lineHeight: 18,
+    letterSpacing: 0.4,
+  },
+  outlinedButton: {
+    borderWidth: 1,
+    borderColor: Colors.light.primaryDark, // #27cccc
+    borderRadius: 32,
+    paddingVertical: 8,
+    paddingHorizontal: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 42,
+    backgroundColor: 'transparent', // Outlined button has no background
+  },
+  outlinedButtonText: {
+    fontFamily: Typography.fontFamily,
+    fontSize: 14,
+    fontWeight: Typography.fontWeight.regular,
+    color: Colors.light.text, // #1f5661
+    lineHeight: 24,
+    letterSpacing: 0.4,
   },
   signUpLink: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 42,
+    minWidth: 80,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 12,
+    borderRadius: 4,
+  },
+  signUpLinkText: {
     fontFamily: Typography.fontFamily,
     fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium,
+    fontWeight: Typography.fontWeight.regular,
+    color: Colors.light.text, // #1f5661
+    textDecorationLine: 'underline',
+    lineHeight: 18,
+    letterSpacing: 0.4,
+    textAlign: 'center',
   },
 });
-

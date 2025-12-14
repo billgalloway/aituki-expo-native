@@ -32,62 +32,118 @@ This app uses Supabase for authentication with support for:
 #### Step 1: Create Service ID in Apple Developer Console
 
 1. Go to [Apple Developer Console](https://developer.apple.com/account)
-2. Navigate to **Certificates, Identifiers & Profiles** → **Identifiers**
-3. Click the **"+"** button to create a new identifier
+2. Navigate to **Certificates, Identifiers & Profiles** (or click **Identifiers** in the left sidebar)
+3. You should see a list of identifiers. Click the **"+"** button in the top right (or click **Register a new identifier**)
 4. Select **Services IDs** and click **Continue**
 5. Fill in:
    - **Description**: AiTuki Sign In Service
    - **Identifier**: `com.aituki.mobile.service` (this is your **Client ID**)
-6. Click **Continue** and **Register**
+6. Click **Continue**, review, then click **Register**
+
+**Note**: If you're on the identifiers list page (https://developer.apple.com/account/resources/identifiers/list), you should see:
+- A list of existing identifiers
+- A **"+"** button or **"Register a new identifier"** button at the top
+- Filter options on the left sidebar
 
 #### Step 2: Configure Service ID for Sign In with Apple
 
-1. Select your newly created Service ID
-2. Check **Sign In with Apple** and click **Configure**
-3. In the **Domains and Subdomains** section:
-   - **Primary App ID**: Select your app's Bundle ID (`com.aituki.mobile`)
-   - **Website URLs** section:
-     - **Domains**: Enter `hhdntbgtedclqqufpzfj.supabase.co` (domain only, no `https://`)
+**IMPORTANT**: There are TWO places to configure Sign In with Apple:
+1. **App ID Configuration** (what you're seeing now) - for the app itself
+2. **Service ID Configuration** (where domains go) - for web authentication
+
+**For the App ID (what you're currently configuring):**
+1. Select **"Enable as a primary App ID"** (should already be selected)
+2. In the **Server-to-Server Notification Endpoint** field, enter:
+   - `https://hhdntbgtedclqqufpzfj.supabase.co/auth/v1/callback`
+   - (This appears to already be filled in correctly)
+3. Click **Continue** or **Save**
+
+**For the Service ID (where domains are configured):**
+1. Go back to the identifiers list
+2. Find and click on your **Service ID** (`com.aituki.mobile.service`) - NOT the App ID
+3. In the **Capabilities** section, find **Sign In with Apple** and check the box
+4. Click **Configure** next to Sign In with Apple
+5. In the Service ID configuration, you should see:
+   - **Primary App ID**: Select `com.aituki.mobile` from the dropdown
+   - **Website URLs** section with:
+     - **Domains and Subdomains**: Enter `hhdntbgtedclqqufpzfj.supabase.co` (domain only, no `https://`)
      - **Return URLs**: Enter `https://hhdntbgtedclqqufpzfj.supabase.co/auth/v1/callback`
-   
-   **Note**: If the domain field doesn't accept the URL:
-   - Try entering just: `hhdntbgtedclqqufpzfj.supabase.co` (no protocol)
-   - The Return URL field should accept the full callback URL
-4. Click **Next**, then **Done**, then **Save**
+6. Click **Save** or **Continue**, then **Done**, then **Save** (at the bottom of the page)
+
+**Note**: The Domain field is in the **Service ID** configuration, not the App ID configuration. Make sure you're configuring both:
+- App ID: For the app itself (what you're seeing now)
+- Service ID: For web/domain authentication (where the domain field is)
 
 #### Step 3: Generate Sign In with Apple Key
 
-1. In Apple Developer Console, go to **Keys** section
-2. Click the **"+"** button
+1. In Apple Developer Console, go to **Keys** section (in the left sidebar, or from the main dashboard)
+2. Click the **"+"** button (top right) or **"Create a key"** button
 3. Fill in:
    - **Key Name**: AiTuki Sign In Key
-   - Enable **Sign In with Apple**
-4. Click **Configure**, select your App ID (`com.aituki.mobile`), click **Save**
-5. Click **Continue** and **Register**
-6. **IMPORTANT**: Download the `.p8` key file immediately (you can only download it once!)
-7. Note the **Key ID** shown on the page
+   - Under **Services**, check **Sign In with Apple**
+4. Click **Configure** next to Sign In with Apple
+5. Select your App ID (`com.aituki.mobile`) from the dropdown, click **Save**
+6. Click **Continue** (or **Register**)
+7. **IMPORTANT**: 
+   - Download the `.p8` key file immediately (you can only download it once!)
+   - Note the **Key ID** shown on the page (you'll need this for the JWT)
+   - Click **Done** after downloading
 
 #### Step 4: Get Your Team ID
 
-1. In Apple Developer Console, go to **Membership** section
+1. In Apple Developer Console, go to **Membership** section (in the left sidebar, or click your name/account icon)
 2. Your **Team ID** is displayed there (e.g., `ABC123DEF4`)
+   - It's usually shown near the top of the membership page
+   - Format: 10 characters (letters and numbers)
 
-#### Step 5: Configure Apple in Supabase
+#### Step 5: Generate Client Secret (JWT)
+
+**IMPORTANT**: Supabase requires a JWT (JSON Web Token), NOT the raw `.p8` file!
+
+1. Go to Supabase's Client Secret Generator:
+   - **Option A**: Use Supabase's online tool: [Generate Client Secret](https://supabase.com/docs/guides/auth/social-login/auth-apple#generate-a-client_secret)
+   - **Option B**: Use the form in Supabase Dashboard (see Step 6)
+
+2. You'll need the following information:
+   - **Key ID**: From the key you generated in Step 3
+   - **Team ID**: From your Apple Developer Membership section
+   - **Client ID (Service ID)**: `com.aituki.mobile.service`
+   - **Private Key**: The contents of your `.p8` file (open it in a text editor and copy the entire contents, including `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----`)
+
+3. Generate the JWT/Client Secret using one of the methods above
+
+#### Step 6: Configure Apple in Supabase
 
 1. In Supabase dashboard, go to **Authentication** → **Providers**
-2. Enable **Apple**
-3. Enter the following (Supabase may only ask for some of these fields):
-   - **Client ID**: Your Service ID (e.g., `com.aituki.mobile.service`) - **Required**
-   - **Secret Key**: Upload the `.p8` file you downloaded - **Required**
-   - **Team ID**: Your Apple Developer Team ID (from Membership section) - May be optional or auto-detected
-   - **Key ID**: The Key ID from the key you generated - May be optional or auto-detected
+2. Click on **Apple** to open the configuration
+3. Enter the following:
+   - **Client IDs**: `com.aituki.mobile.service` (your Service ID) - **Required**
+   - **Secret Key (for OAuth)**: Paste the **JWT** you generated in Step 5 (NOT the `.p8` file) - **Required**
+     - The JWT is a long string that looks like: `eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...`
+     - You can click the eye icon to toggle visibility when pasting
    
-   **Note**: Supabase may have simplified the interface. If you only see:
-   - **Client ID** field → Enter your Service ID (`com.aituki.mobile.service`)
-   - **Secret Key** field → Upload your `.p8` file
+   **Note**: The current Supabase interface does NOT require separate Team ID and Key ID fields. These are automatically extracted from the JWT itself, which contains all the necessary information.
    
-   The Team ID and Key ID might be extracted automatically from the `.p8` file, or Supabase may generate the client secret for you.
-4. Click **Save**
+4. **Optional Settings**:
+   - **Allow users without an email**: Toggle ON if you want to allow users who hide their email from Apple
+   
+5. **Callback URL**: 
+   - The Callback URL is shown: `https://hhdntbgtedclqqufpzfj.supabase.co/auth/v1/callback`
+   - This should already be configured in your Apple Developer Console Service ID
+   - You can copy this URL if needed
+   
+6. Click **Save** at the bottom right
+
+**Important Notes**:
+- The **Secret Key** field expects a **JWT string**, not a file upload
+- The JWT contains Team ID, Key ID, and Client ID information, so you don't need to enter them separately
+- Make sure the JWT is valid and not expired (they expire every 6 months)
+
+**Troubleshooting "Secret key should be a JWT" Error:**
+- ❌ **Wrong**: Uploading the `.p8` file directly
+- ✅ **Correct**: Generating a JWT from the `.p8` file and pasting the JWT string
+- If Supabase has a "Generate Client Secret" button, use that instead
+- The JWT must be a string, not a file
 
 **Troubleshooting URL Issues:**
 - If Apple Developer Console doesn't accept the Supabase URL, try:
@@ -98,14 +154,71 @@ This app uses Supabase for authentication with support for:
 
 ### Google Sign-In Setup
 
-1. In Supabase dashboard, go to **Authentication** → **Providers**
-2. Enable **Google**
-3. You'll need:
-   - Google Cloud Console project
-   - OAuth 2.0 Client ID
-   - Client Secret
+#### Step 1: Create Google Cloud Project
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Sign in with your Google account
+3. Click **"Select a project"** → **"New Project"**
+4. Fill in:
+   - **Project name**: AiTuki (or your preferred name)
+   - **Organization**: (optional)
+   - **Location**: (optional)
+5. Click **"Create"**
+
+#### Step 2: Configure OAuth Consent Screen
+
+1. In Google Cloud Console, go to **APIs & Services** → **OAuth consent screen**
+2. Select **External** (unless you have a Google Workspace account)
+3. Click **"Create"**
+4. Fill in the required information:
+   - **App name**: AiTuki
+   - **User support email**: Your email address
+   - **Developer contact information**: Your email address
+5. Click **"Save and Continue"**
+6. On **Scopes** page, click **"Save and Continue"** (default scopes are fine)
+7. On **Test users** page, click **"Save and Continue"** (optional for testing)
+8. Review and click **"Back to Dashboard"**
+
+#### Step 3: Create OAuth 2.0 Credentials
+
+1. In Google Cloud Console, go to **APIs & Services** → **Credentials**
+2. Click **"Create Credentials"** → **"OAuth client ID"**
+3. If prompted, configure the OAuth consent screen (you may have already done this)
+4. Select **Application type**: **Web application**
+5. Fill in:
+   - **Name**: AiTuki Mobile App
+   - **Authorized redirect URIs**: 
+     - Add: `https://hhdntbgtedclqqufpzfj.supabase.co/auth/v1/callback`
+     - This is your Supabase project callback URL
+6. Click **"Create"**
+7. **IMPORTANT**: Copy both:
+   - **Client ID** (looks like: `123456789-abcdefghijklmnop.apps.googleusercontent.com`)
+   - **Client Secret** (looks like: `GOCSPX-abcdefghijklmnopqrstuvwxyz`)
    
-   Follow Supabase's Google setup guide: [Google OAuth Setup](https://supabase.com/docs/guides/auth/social-login/auth-google)
+   ⚠️ **Save these immediately** - you can't view the Client Secret again!
+
+#### Step 4: Enable Google in Supabase
+
+1. In Supabase dashboard, go to **Authentication** → **Providers**
+2. Find **Google** and click to expand
+3. Toggle **Enable Sign in with Google** to ON
+4. Enter the following:
+   - **Client ID (for OAuth)**: Paste your Google Client ID
+   - **Client Secret (for OAuth)**: Paste your Google Client Secret
+5. Click **"Save"**
+
+#### Step 5: Verify Redirect URLs
+
+1. In Supabase dashboard, go to **Authentication** → **URL Configuration**
+2. Verify that `aitukinative://auth/callback` is in the **Redirect URLs** list
+3. If not, add it and save
+
+**That's it!** Google Sign-In should now work in your app.
+
+**Troubleshooting:**
+- **"Invalid client" error**: Verify Client ID and Client Secret are correct
+- **"Redirect URI mismatch"**: Ensure the redirect URI in Google Cloud Console matches exactly: `https://hhdntbgtedclqqufpzfj.supabase.co/auth/v1/callback`
+- **OAuth not working**: Check that OAuth consent screen is published (or add test users if in testing mode)
 
 ## Step 4: Add Credentials to app.json
 

@@ -102,6 +102,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithApple = async () => {
     try {
       const redirectUrl = `${Constants.expoConfig?.scheme || 'aitukinative'}://auth/callback`;
+      console.log('🍎 Starting Apple Sign-In with redirect:', redirectUrl);
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
@@ -110,36 +112,131 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        return { error };
+        console.error('❌ Apple OAuth error:', error);
+        return { error, debugInfo: { step: 'init', error: error.message } };
       }
 
-      if (data?.url) {
-        const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
-        
-        if (result.type === 'success' && result.url) {
+      if (!data?.url) {
+        console.error('❌ No OAuth URL returned from Supabase');
+        return { error: new Error('Failed to initiate Apple Sign-In. Please check Supabase configuration.'), debugInfo: { step: 'init', issue: 'No OAuth URL returned' } };
+      }
+
+      console.log('🌐 Opening OAuth URL:', data.url);
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+      
+      console.log('📱 OAuth result:', result.type);
+      console.log('📱 OAuth result URL:', result.url);
+      
+      if (result.type === 'success' && result.url) {
+        try {
           const url = new URL(result.url);
-          const code = url.searchParams.get('code');
+          console.log('🔍 Parsed callback URL:', url.href);
+          console.log('🔍 URL search params:', Object.fromEntries(url.searchParams.entries()));
           
-          if (code) {
-            const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-            if (exchangeError) {
-              return { error: exchangeError };
+          const code = url.searchParams.get('code');
+          const errorParam = url.searchParams.get('error');
+          const accessToken = url.searchParams.get('access_token');
+          const refreshToken = url.searchParams.get('refresh_token');
+          
+          // Check hash fragment too (sometimes OAuth puts params in hash)
+          const hashParams = new URLSearchParams(url.hash.substring(1));
+          const codeFromHash = hashParams.get('code');
+          const errorFromHash = hashParams.get('error');
+          const accessTokenFromHash = hashParams.get('access_token');
+          const refreshTokenFromHash = hashParams.get('refresh_token');
+          
+          const debugInfo = {
+            step: 'callback',
+            callbackUrl: result.url,
+            parsedUrl: url.href,
+            pathname: url.pathname,
+            search: url.search,
+            hash: url.hash,
+            queryParams: Object.fromEntries(url.searchParams.entries()),
+            hashParams: Object.fromEntries(hashParams.entries()),
+            foundCode: code || codeFromHash || 'NOT FOUND',
+            foundError: errorParam || errorFromHash || 'none',
+            foundTokens: !!(accessToken || accessTokenFromHash),
+          };
+          
+          if (errorParam || errorFromHash) {
+            console.error('❌ OAuth error in callback:', errorParam || errorFromHash);
+            return { error: new Error(`Apple Sign-In error: ${errorParam || errorFromHash}`), debugInfo };
+          }
+          
+          // Handle direct token response (sometimes OAuth returns tokens directly)
+          const finalAccessToken = accessToken || accessTokenFromHash;
+          const finalRefreshToken = refreshToken || refreshTokenFromHash;
+          
+          if (finalAccessToken && finalRefreshToken) {
+            console.log('✅ Received tokens directly, setting session...');
+            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+              access_token: finalAccessToken,
+              refresh_token: finalRefreshToken,
+            });
+            
+            if (sessionError) {
+              console.error('❌ Session error:', sessionError);
+              return { error: sessionError, debugInfo: { ...debugInfo, step: 'session_set', error: sessionError.message } };
+            }
+            
+            if (sessionData.session) {
+              console.log('✅ Apple Sign-In successful!');
+              return { error: null };
             }
           }
-        } else {
-          return { error: new Error('OAuth cancelled or failed') };
+          
+          // Handle code exchange flow
+          const finalCode = code || codeFromHash;
+          if (finalCode) {
+            console.log('✅ Received OAuth code, exchanging for session...');
+            const { data: sessionData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(finalCode);
+            
+            if (exchangeError) {
+              console.error('❌ Code exchange error:', exchangeError);
+              return { error: exchangeError, debugInfo: { ...debugInfo, step: 'code_exchange', error: exchangeError.message } };
+            }
+            
+            if (sessionData.session) {
+              console.log('✅ Apple Sign-In successful!');
+              return { error: null };
+            } else {
+              console.error('❌ No session after code exchange');
+              return { error: new Error('Failed to create session after Apple Sign-In'), debugInfo: { ...debugInfo, step: 'code_exchange', issue: 'No session returned' } };
+            }
+          } else {
+            console.error('❌ No code in callback URL');
+            return { error: new Error('Apple Sign-In callback missing authorization code'), debugInfo };
+          }
+        } catch (urlError) {
+          console.error('❌ Error parsing callback URL:', urlError);
+          return { 
+            error: new Error('Failed to process Apple Sign-In callback'), 
+            debugInfo: { 
+              step: 'url_parse_error', 
+              rawUrl: result.url, 
+              error: (urlError as Error).message 
+            } 
+          };
         }
+      } else if (result.type === 'cancel') {
+        console.log('⚠️ User cancelled Apple Sign-In');
+        return { error: new Error('Apple Sign-In was cancelled'), debugInfo: { step: 'user_cancelled', resultType: result.type } };
+      } else {
+        console.error('❌ OAuth failed or cancelled:', result.type);
+        return { error: new Error('Apple Sign-In was cancelled or failed'), debugInfo: { step: 'oauth_failed', resultType: result.type } };
       }
-
-      return { error: null };
     } catch (error) {
-      return { error: error as Error };
+      console.error('❌ Apple Sign-In exception:', error);
+      return { error: error as Error, debugInfo: { step: 'exception', error: (error as Error).message } };
     }
   };
 
   const signInWithGoogle = async () => {
     try {
       const redirectUrl = `${Constants.expoConfig?.scheme || 'aitukinative'}://auth/callback`;
+      console.log('🔵 Starting Google Sign-In with redirect:', redirectUrl);
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -148,30 +245,123 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        return { error };
+        console.error('❌ Google OAuth error:', error);
+        return { error, debugInfo: { step: 'init', error: error.message } };
       }
 
-      if (data?.url) {
-        const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
-        
-        if (result.type === 'success' && result.url) {
+      if (!data?.url) {
+        console.error('❌ No OAuth URL returned from Supabase');
+        return { error: new Error('Failed to initiate Google Sign-In. Please check Supabase configuration.'), debugInfo: { step: 'init', issue: 'No OAuth URL returned' } };
+      }
+
+      console.log('🌐 Opening OAuth URL:', data.url);
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+      
+      console.log('📱 OAuth result:', result.type);
+      console.log('📱 OAuth result URL:', result.url);
+      
+      if (result.type === 'success' && result.url) {
+        try {
           const url = new URL(result.url);
-          const code = url.searchParams.get('code');
+          console.log('🔍 Parsed callback URL:', url.href);
+          console.log('🔍 URL search params:', Object.fromEntries(url.searchParams.entries()));
           
-          if (code) {
-            const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-            if (exchangeError) {
-              return { error: exchangeError };
+          const code = url.searchParams.get('code');
+          const errorParam = url.searchParams.get('error');
+          const accessToken = url.searchParams.get('access_token');
+          const refreshToken = url.searchParams.get('refresh_token');
+          
+          // Check hash fragment too (sometimes OAuth puts params in hash)
+          const hashParams = new URLSearchParams(url.hash.substring(1));
+          const codeFromHash = hashParams.get('code');
+          const errorFromHash = hashParams.get('error');
+          const accessTokenFromHash = hashParams.get('access_token');
+          const refreshTokenFromHash = hashParams.get('refresh_token');
+          
+          const debugInfo = {
+            step: 'callback',
+            callbackUrl: result.url,
+            parsedUrl: url.href,
+            pathname: url.pathname,
+            search: url.search,
+            hash: url.hash,
+            queryParams: Object.fromEntries(url.searchParams.entries()),
+            hashParams: Object.fromEntries(hashParams.entries()),
+            foundCode: code || codeFromHash || 'NOT FOUND',
+            foundError: errorParam || errorFromHash || 'none',
+            foundTokens: !!(accessToken || accessTokenFromHash),
+          };
+          
+          if (errorParam || errorFromHash) {
+            console.error('❌ OAuth error in callback:', errorParam || errorFromHash);
+            return { error: new Error(`Google Sign-In error: ${errorParam || errorFromHash}`), debugInfo };
+          }
+          
+          // Handle direct token response (sometimes OAuth returns tokens directly)
+          const finalAccessToken = accessToken || accessTokenFromHash;
+          const finalRefreshToken = refreshToken || refreshTokenFromHash;
+          
+          if (finalAccessToken && finalRefreshToken) {
+            console.log('✅ Received tokens directly, setting session...');
+            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+              access_token: finalAccessToken,
+              refresh_token: finalRefreshToken,
+            });
+            
+            if (sessionError) {
+              console.error('❌ Session error:', sessionError);
+              return { error: sessionError, debugInfo: { ...debugInfo, step: 'session_set', error: sessionError.message } };
+            }
+            
+            if (sessionData.session) {
+              console.log('✅ Google Sign-In successful!');
+              return { error: null };
             }
           }
-        } else {
-          return { error: new Error('OAuth cancelled or failed') };
+          
+          // Handle code exchange flow
+          const finalCode = code || codeFromHash;
+          if (finalCode) {
+            console.log('✅ Received OAuth code, exchanging for session...');
+            const { data: sessionData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(finalCode);
+            
+            if (exchangeError) {
+              console.error('❌ Code exchange error:', exchangeError);
+              return { error: exchangeError, debugInfo: { ...debugInfo, step: 'code_exchange', error: exchangeError.message } };
+            }
+            
+            if (sessionData.session) {
+              console.log('✅ Google Sign-In successful!');
+              return { error: null };
+            } else {
+              console.error('❌ No session after code exchange');
+              return { error: new Error('Failed to create session after Google Sign-In'), debugInfo: { ...debugInfo, step: 'code_exchange', issue: 'No session returned' } };
+            }
+          } else {
+            console.error('❌ No code in callback URL');
+            return { error: new Error('Google Sign-In callback missing authorization code'), debugInfo };
+          }
+        } catch (urlError) {
+          console.error('❌ Error parsing callback URL:', urlError);
+          return { 
+            error: new Error('Failed to process Google Sign-In callback'), 
+            debugInfo: { 
+              step: 'url_parse_error', 
+              rawUrl: result.url, 
+              error: (urlError as Error).message 
+            } 
+          };
         }
+      } else if (result.type === 'cancel') {
+        console.log('⚠️ User cancelled Google Sign-In');
+        return { error: new Error('Google Sign-In was cancelled'), debugInfo: { step: 'user_cancelled', resultType: result.type } };
+      } else {
+        console.error('❌ OAuth failed or cancelled:', result.type);
+        return { error: new Error('Google Sign-In was cancelled or failed'), debugInfo: { step: 'oauth_failed', resultType: result.type } };
       }
-
-      return { error: null };
     } catch (error) {
-      return { error: error as Error };
+      console.error('❌ Google Sign-In exception:', error);
+      return { error: error as Error, debugInfo: { step: 'exception', error: (error as Error).message } };
     }
   };
 
