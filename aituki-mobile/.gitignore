@@ -46,3 +46,5 @@ app-example
 /ios
 /android
 .env
+AuthKey_*.p8
+apple-client-secret-jwt.txt
