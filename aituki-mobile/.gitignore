@@ -48,3 +48,7 @@ app-example
 .env
 AuthKey_*.p8
 apple-client-secret-jwt.txt
+
+# Android build files
+*.aab
+*.apk
