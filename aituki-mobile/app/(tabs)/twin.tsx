@@ -4,9 +4,10 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated } from 'react-native';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
+import ChatInterface from '@/components/ChatInterface';
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
 import IconLibrary from '@/components/IconLibrary';
 
@@ -40,12 +41,20 @@ const goalSuggestions = [
 
 export default function TwinScreen() {
   const [showAlert, setShowAlert] = useState(true);
+  const [hasMessages, setHasMessages] = useState(false);
+  
+  // System prompt for the AI twin - customize this to match your app's personality
+  const aiSystemPrompt = `You are a helpful AI wellness assistant for the AiTuki app. You help users with their health and wellness goals, providing personalized guidance based on their data and preferences. Be friendly, supportive, concise, and encouraging. Focus on health, fitness, perimenopause support, wellbeing, and spiritual growth.`;
+
+  const handleMessagesChange = (messageCount: number) => {
+    setHasMessages(messageCount > 0);
+  };
 
   return (
     <View style={styles.container}>
       <Header />
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Profile Header */}
+      {/* Profile Header - Only show when no messages */}
+      {!hasMessages && (
         <View style={styles.profileHeader}>
           <View style={styles.dateRow}>
             <IconLibrary iconName="calendar-today" size={24} color={Colors.light.text} />
@@ -66,58 +75,62 @@ export default function TwinScreen() {
             </View>
           </View>
         </View>
+      )}
 
-        {/* Chat Input Card */}
-        <View style={styles.chatInputCard}>
-          <Text style={styles.placeholderText}>Ask me anything</Text>
-          <View style={styles.chatActions}>
-            <View style={styles.chatActionsLeft}>
-              <TouchableOpacity>
-                <IconLibrary iconName="add" size={24} color={Colors.light.textSecondary} />
-              </TouchableOpacity>
-              <TouchableOpacity>
-                <IconLibrary iconName="language" size={24} color={Colors.light.textSecondary} />
-              </TouchableOpacity>
-              <TouchableOpacity>
-                <IconLibrary iconName="drag-indicator" size={24} color={Colors.light.textSecondary} />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.chatActionsRight}>
-              <TouchableOpacity>
-                <IconLibrary iconName="mic" size={24} color={Colors.light.textSecondary} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.sendButton}>
-                <IconLibrary iconName="send" size={24} color={Colors.light.background} />
-              </TouchableOpacity>
-            </View>
-          </View>
+      {/* Welcome Message Area - Only show when messages exist */}
+      {hasMessages && (
+        <View style={styles.welcomeMessageArea}>
+          <Text style={styles.welcomeText}>
+            Hello I am Tuki your digital twin is here to help.{'\n\n'}I understand you and your body and can give helpful tips on how to stay healthy and well.{'\n\n'}Try asking me to set up a goal or ask for regular nudges to help you improve whatever you want.{'\n\n'}Ask me something...
+          </Text>
         </View>
+      )}
 
-        {/* Alert */}
-        {showAlert && (
-          <View style={styles.alert}>
-            <Text style={styles.alertText}>Hydration reminders</Text>
-            <TouchableOpacity onPress={() => setShowAlert(false)}>
-              <IconLibrary iconName="close" size={20} color={Colors.light.text} />
-            </TouchableOpacity>
-          </View>
-        )}
+      {/* Chat Interface Container */}
+      <View style={styles.chatSection}>
+        <View style={styles.chatSectionInner}>
+          <ChatInterface
+            systemPrompt={aiSystemPrompt}
+            placeholder="Ask me anything"
+            onMessagesChange={handleMessagesChange}
+          />
+          {/* Alert - Only show when no messages */}
+          {!hasMessages && showAlert && (
+            <View style={styles.alert}>
+              <View style={styles.alertIconContainer}>
+                <IconLibrary iconName="info" size={22} color="#0288d1" />
+              </View>
+              <Text style={styles.alertText}>Hydration reminders</Text>
+              <TouchableOpacity 
+                style={styles.alertCloseButton}
+                onPress={() => setShowAlert(false)}>
+                <View style={styles.alertCloseIcon}>
+                  <IconLibrary iconName="close" size={20} color="#014361" />
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
 
-        {/* Goal Suggestions */}
+      {/* Goal Suggestions - Quick Action Cards - Only show when no messages */}
+      {!hasMessages && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.suggestionsContainer}>
-          {goalSuggestions.map((goal, index) => (
-            <View
-              key={index}
-              style={[styles.suggestionCard, { backgroundColor: goal.backgroundColor }]}>
-              <Text style={styles.suggestionTitle}>{goal.title}</Text>
-              <Text style={styles.suggestionSubtitle}>{goal.subtitle}</Text>
-            </View>
-          ))}
+        {goalSuggestions.map((goal, index) => (
+          <View
+            key={index}
+            style={[styles.suggestionCard, { backgroundColor: goal.backgroundColor }]}>
+            <Text style={styles.suggestionTitle}>{goal.title}</Text>
+            <Text style={styles.suggestionSubtitle}>{goal.subtitle}</Text>
+          </View>
+        ))}
         </ScrollView>
-      </ScrollView>
+      )}
+     
+
       <BottomNavigation activeTab="tuki" />
     </View>
   );
@@ -128,19 +141,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.light.background,
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 120,
-    gap: Spacing.md,
-  },
   profileHeader: {
     backgroundColor: Colors.light.background,
     borderBottomLeftRadius: BorderRadius.full,
     borderBottomRightRadius: BorderRadius.full,
-    padding: Spacing.lg,
-    paddingTop: Spacing.md,
+    paddingTop: 0,
+    paddingBottom: Spacing.md, // 16px
+    paddingLeft: Spacing.lg, // 24px
+    paddingRight: Spacing.sm, // 8px
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -150,8 +158,9 @@ const styles = StyleSheet.create({
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
+    gap: Spacing.sm, // 8px
+    marginTop: Spacing.md, // 16px above dateRow
+    marginBottom: Spacing.sm, // 8px gap after date row
   },
   dateText: {
     fontFamily: Typography.fontFamily,
@@ -175,7 +184,7 @@ const styles = StyleSheet.create({
   },
   profileText: {
     flex: 1,
-    gap: Spacing.xs,
+    gap: Spacing.xs, // 4px gap between greeting and badges
   },
   greeting: {
     fontFamily: Typography.fontFamily,
@@ -205,71 +214,27 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.medium,
     color: Colors.light.text,
   },
-  chatInputCard: {
-    marginHorizontal: Spacing.lg,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(31, 86, 97, 0.15)',
-    backgroundColor: '#fafafa',
-    height: 192,
-    justifyContent: 'space-between',
-  },
-  placeholderText: {
-    fontFamily: Typography.fontFamily,
-    fontSize: Typography.fontSize.sm,
-    color: Colors.light.textSecondary,
-    opacity: 0.6,
-  },
-  chatActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  chatActionsLeft: {
-    flexDirection: 'row',
-    gap: 17,
-    alignItems: 'center',
-  },
-  chatActionsRight: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    alignItems: 'center',
-  },
-  sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.light.text,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   alert: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginHorizontal: Spacing.lg,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md, // 16px
+    paddingVertical: 6, // 6px
+    borderRadius: BorderRadius.sm, // 8px
     backgroundColor: '#e5f6fd',
     gap: Spacing.sm,
   },
-  alertText: {
-    flex: 1,
-    fontFamily: Typography.fontFamily,
-    fontSize: Typography.fontSize.sm,
-    color: '#014361',
-  },
   suggestionsContainer: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.lg,
+    paddingHorizontal: Spacing.lg, // 24px
+    paddingVertical: Spacing.md, // 16px
+    gap: Spacing.lg, // 24px gap between cards
+    alignItems: 'flex-start', // Hug content height
   },
   suggestionCard: {
-    minWidth: 191,
-    padding: Spacing.md,
+    padding: Spacing.md - 4, // 12px (var(--3) from Figma)
     borderRadius: BorderRadius.lg,
-    gap: Spacing.xs,
+    gap: Spacing.xs, // 4px gap between title and subtitle
+    alignSelf: 'flex-start', // Hug content
   },
   suggestionTitle: {
     fontFamily: Typography.fontFamily,
@@ -281,5 +246,45 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.xs,
     color: Colors.light.textSecondary,
     opacity: 0.6,
+  },
+  welcomeMessageArea: {
+    paddingHorizontal: Spacing.lg, // 24px
+    paddingVertical: Spacing.md, // 16px
+  },
+  welcomeText: {
+    fontFamily: Typography.fontFamily,
+    fontSize: Typography.fontSize.sm, // 14px
+    lineHeight: Typography.fontSize.sm * 1.43, // 1.43 line height
+    letterSpacing: 0.17,
+    color: Colors.light.text,
+  },
+  chatSection: {
+    paddingTop: Spacing.md, // 16px
+    paddingHorizontal: Spacing.lg, // 24px
+  },
+  chatSectionInner: {
+    gap: Spacing.md, // 16px gap between chat and alert
+  },
+  alertIconContainer: {
+    paddingRight: Spacing.md - 4, // 12px
+    paddingVertical: 7, // 7px
+    alignItems: 'flex-start',
+  },
+  alertText: {
+    flex: 1,
+    fontFamily: Typography.fontFamily,
+    fontSize: Typography.fontSize.sm,
+    color: '#014361',
+    paddingVertical: Spacing.sm, // 8px
+  },
+  alertCloseButton: {
+    paddingLeft: Spacing.md, // 16px
+    paddingRight: 0,
+    paddingTop: 4, // 4px
+    paddingBottom: 0,
+  },
+  alertCloseIcon: {
+    padding: 5, // 5px
+    borderRadius: BorderRadius.round,
   },
 });

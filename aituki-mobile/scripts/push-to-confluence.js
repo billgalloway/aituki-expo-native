@@ -1,0 +1,270 @@
+#!/usr/bin/env node
+
+/**
+ * Push documentation from help/ folder to Confluence
+ * 
+ * Requirements:
+ * - Confluence base URL (e.g., https://your-domain.atlassian.net)
+ * - Confluence API token or username/password
+ * - Space key where pages will be created
+ * 
+ * Usage:
+ *   node scripts/push-to-confluence.js
+ * 
+ * Environment variables:
+ *   CONFLUENCE_BASE_URL - Your Confluence base URL
+ *   CONFLUENCE_EMAIL - Your Confluence email/username
+ *   CONFLUENCE_API_TOKEN - Your Confluence API token
+ *   CONFLUENCE_SPACE_KEY - The space key where pages will be created
+ */
+
+const fs = require('fs');
+const path = require('path');
+const https = require('https');
+const { execSync } = require('child_process');
+
+// Configuration from environment variables
+const CONFLUENCE_BASE_URL = process.env.CONFLUENCE_BASE_URL || '';
+const CONFLUENCE_EMAIL = process.env.CONFLUENCE_EMAIL || '';
+const CONFLUENCE_API_TOKEN = process.env.CONFLUENCE_API_TOKEN || '';
+const CONFLUENCE_SPACE_KEY = process.env.CONFLUENCE_SPACE_KEY || '';
+
+// Helper function to make Confluence API requests
+function confluenceRequest(method, endpoint, data = null) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(endpoint, CONFLUENCE_BASE_URL);
+    const auth = Buffer.from(`${CONFLUENCE_EMAIL}:${CONFLUENCE_API_TOKEN}`).toString('base64');
+
+    const options = {
+      hostname: url.hostname,
+      path: url.pathname + url.search,
+      method: method,
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => { body += chunk; });
+      res.on('end', () => {
+        try {
+          const parsed = body ? JSON.parse(body) : {};
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve(parsed);
+          } else {
+            reject(new Error(`API Error ${res.statusCode}: ${JSON.stringify(parsed)}`));
+          }
+        } catch (e) {
+          reject(new Error(`Parse Error: ${e.message}\nResponse: ${body}`));
+        }
+      });
+    });
+
+    req.on('error', reject);
+
+    if (data) {
+      req.write(JSON.stringify(data));
+    }
+
+    req.end();
+  });
+}
+
+// Convert markdown to Confluence storage format
+function markdownToConfluenceStorage(markdown) {
+  // Basic markdown to Confluence conversion
+  // Confluence uses a storage format with macros
+  let confluence = markdown;
+
+  // Convert headers
+  confluence = confluence.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+  confluence = confluence.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+  confluence = confluence.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+  confluence = confluence.replace(/^#### (.*$)/gim, '<h4>$1</h4>');
+
+  // Convert code blocks
+  confluence = confluence.replace(/```(\w+)?\n([\s\S]*?)```/g, '<ac:structured-macro ac:name="code"><ac:parameter ac:name="language">$1</ac:parameter><ac:plain-text-body><![CDATA[$2]]></ac:plain-text-body></ac:structured-macro>');
+  confluence = confluence.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Convert links
+  confluence = confluence.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+  // Convert bold
+  confluence = confluence.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  confluence = confluence.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+  // Convert lists
+  confluence = confluence.replace(/^\- (.*$)/gim, '<li>$1</li>');
+  confluence = confluence.replace(/^(\d+)\. (.*$)/gim, '<li>$2</li>');
+
+  // Wrap lists in ul/ol tags (simplified)
+  confluence = confluence.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+
+  // Convert line breaks
+  confluence = confluence.replace(/\n\n/g, '</p><p>');
+  confluence = '<p>' + confluence + '</p>';
+
+  return confluence;
+}
+
+// Get or create a page
+async function getOrCreatePage(title, parentId, content, spaceKey) {
+  try {
+    // Try to find existing page
+    const searchResult = await confluenceRequest(
+      'GET',
+      `/wiki/rest/api/content?title=${encodeURIComponent(title)}&spaceKey=${spaceKey}&expand=version`
+    );
+
+    if (searchResult.results && searchResult.results.length > 0) {
+      const page = searchResult.results[0];
+      console.log(`  Found existing page: ${title} (ID: ${page.id})`);
+
+      // Update existing page
+      const updateData = {
+        version: { number: page.version.number + 1 },
+        title: title,
+        type: 'page',
+        body: {
+          storage: {
+            value: content,
+            representation: 'storage',
+          },
+        },
+      };
+
+      if (parentId) {
+        updateData.ancestors = [{ id: parentId }];
+      }
+
+      const updated = await confluenceRequest('PUT', `/wiki/rest/api/content/${page.id}`, updateData);
+      console.log(`  ✅ Updated page: ${title}`);
+      return updated;
+    } else {
+      // Create new page
+      const createData = {
+        type: 'page',
+        title: title,
+        space: { key: spaceKey },
+        body: {
+          storage: {
+            value: content,
+            representation: 'storage',
+          },
+        },
+      };
+
+      if (parentId) {
+        createData.ancestors = [{ id: parentId }];
+      }
+
+      const created = await confluenceRequest('POST', '/wiki/rest/api/content', createData);
+      console.log(`  ✅ Created page: ${title} (ID: ${created.id})`);
+      return created;
+    }
+  } catch (error) {
+    console.error(`  ❌ Error with page ${title}:`, error.message);
+    throw error;
+  }
+}
+
+// Process a markdown file
+async function processMarkdownFile(filePath, parentId, spaceKey) {
+  const fullPath = path.join(__dirname, '..', filePath);
+  const fileName = path.basename(filePath, '.md');
+  const content = fs.readFileSync(fullPath, 'utf8');
+  const confluenceContent = markdownToConfluenceStorage(content);
+  const title = fileName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+  console.log(`Processing: ${title}`);
+  return await getOrCreatePage(title, parentId, confluenceContent, spaceKey);
+}
+
+// Main function
+async function main() {
+  // Validate configuration
+  if (!CONFLUENCE_BASE_URL || !CONFLUENCE_EMAIL || !CONFLUENCE_API_TOKEN || !CONFLUENCE_SPACE_KEY) {
+    console.error('❌ Missing required environment variables:');
+    console.error('   CONFLUENCE_BASE_URL - Your Confluence base URL (e.g., https://your-domain.atlassian.net)');
+    console.error('   CONFLUENCE_EMAIL - Your Confluence email/username');
+    console.error('   CONFLUENCE_API_TOKEN - Your Confluence API token');
+    console.error('   CONFLUENCE_SPACE_KEY - The space key where pages will be created');
+    console.error('\nExample:');
+    console.error('  export CONFLUENCE_BASE_URL="https://your-domain.atlassian.net"');
+    console.error('  export CONFLUENCE_EMAIL="your-email@example.com"');
+    console.error('  export CONFLUENCE_API_TOKEN="your-api-token"');
+    console.error('  export CONFLUENCE_SPACE_KEY="DOC"');
+    console.error('  node scripts/push-to-confluence.js');
+    process.exit(1);
+  }
+
+  console.log('🚀 Starting Confluence documentation push...\n');
+  console.log(`Base URL: ${CONFLUENCE_BASE_URL}`);
+  console.log(`Space: ${CONFLUENCE_SPACE_KEY}\n`);
+
+  try {
+    // Verify connection
+    console.log('Verifying Confluence connection...');
+    await confluenceRequest('GET', `/wiki/rest/api/space/${CONFLUENCE_SPACE_KEY}`);
+    console.log('✅ Connected to Confluence\n');
+
+    // Create main documentation page
+    const helpReadme = fs.readFileSync(path.join(__dirname, '..', 'help', 'README.md'), 'utf8');
+    const mainPage = await getOrCreatePage(
+      'AiTuki Mobile App Documentation',
+      null,
+      markdownToConfluenceStorage(helpReadme),
+      CONFLUENCE_SPACE_KEY
+    );
+
+    // Process each category
+    const categories = ['Android', 'iOS', 'Integrations', 'Deployment', 'General'];
+    const categoryPages = {};
+
+    for (const category of categories) {
+      console.log(`\n📁 Processing category: ${category}`);
+      const categoryPage = await getOrCreatePage(
+        category,
+        mainPage.id,
+        `<p>Documentation for ${category}</p>`,
+        CONFLUENCE_SPACE_KEY
+      );
+      categoryPages[category] = categoryPage.id;
+
+      // Process files in this category
+      const categoryDir = path.join(__dirname, '..', 'help', category);
+      if (fs.existsSync(categoryDir)) {
+        const files = fs.readdirSync(categoryDir)
+          .filter(f => f.endsWith('.md') && !f.endsWith('.local'));
+
+        for (const file of files) {
+          await processMarkdownFile(
+            `help/${category}/${file}`,
+            categoryPage.id,
+            CONFLUENCE_SPACE_KEY
+          );
+        }
+      }
+    }
+
+    console.log('\n✅ Documentation push completed!');
+    console.log(`\nView your documentation at: ${CONFLUENCE_BASE_URL}/wiki/spaces/${CONFLUENCE_SPACE_KEY}/pages/${mainPage.id}`);
+
+  } catch (error) {
+    console.error('\n❌ Error:', error.message);
+    process.exit(1);
+  }
+}
+
+// Run if called directly
+if (require.main === module) {
+  main();
+}
+
+module.exports = { main, markdownToConfluenceStorage, getOrCreatePage };
+
+
+

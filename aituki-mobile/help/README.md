@@ -65,6 +65,10 @@ This folder contains all documentation for the AiTuki mobile app, organized by c
 ### Other
 - [Imagery Fix Summary](General/IMAGERY_FIX_SUMMARY.md) - Image-related fixes
 
+## 📤 Publishing to Confluence
+
+- [Confluence Setup](CONFLUENCE_SETUP.md) - Push documentation to Confluence
+
 ## Quick Links
 
 ### Getting Started

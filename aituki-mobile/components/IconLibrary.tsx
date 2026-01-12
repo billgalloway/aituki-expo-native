@@ -245,6 +245,22 @@ const IconComponents: Record<string, React.FC<{ size: number; color: string }>> 
       <Path d="M11.5 6.5l-5 5" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </Svg>
   ),
+  attachment: ({ size, color }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Box/square */}
+      <Rect x="3" y="7" width="14" height="14" rx="2" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* Arrow pointing out from box */}
+      <Path d="M17 11l4-4m0 0v3m0-3h-3" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </Svg>
+  ),
+  'attach-file': ({ size, color }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Box/square */}
+      <Rect x="3" y="7" width="14" height="14" rx="2" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* Arrow pointing out from box */}
+      <Path d="M17 11l4-4m0 0v3m0-3h-3" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </Svg>
+  ),
   
   // Additional mappings
   settings: ({ size, color }) => (
@@ -313,6 +329,17 @@ const IconComponents: Record<string, React.FC<{ size: number; color: string }>> 
   'arrow_forward': ({ size, color }) => (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path d="M5 12h14M12 5l7 7-7 7" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </Svg>
+  ),
+  'chat-bubble-outline': ({ size, color }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </Svg>
+  ),
+  refresh: ({ size, color }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M1 4v6h6M23 20v-6h-6" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </Svg>
   ),
 };
