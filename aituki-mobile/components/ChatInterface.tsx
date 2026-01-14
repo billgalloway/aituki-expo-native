@@ -47,6 +47,17 @@ export default function ChatInterface({
   const [isLoading, setIsLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const textInputRef = useRef<TextInput>(null);
+  
+  // Sync initialMessages prop changes to state
+  useEffect(() => {
+    if (initialMessages.length > 0 && initialMessages.length !== messages.length) {
+      console.log('Syncing initialMessages to state', { 
+        initialCount: initialMessages.length, 
+        currentCount: messages.length 
+      });
+      setMessages(initialMessages);
+    }
+  }, [initialMessages.length]); // Only trigger on length change to avoid loops
 
   // Sync with initialMessages if provided (for when component remounts with same key)
   useEffect(() => {
@@ -117,13 +128,28 @@ export default function ChatInterface({
       const finalMessages = [...newMessages, assistantMessage];
       setMessages(finalMessages);
       console.log('handleSend: Success', { messageCount: finalMessages.length, messages: finalMessages.map(m => ({ role: m.role, contentLength: m.content.length })) });
-      // Also notify parent via callback if we want to lift state
-      // For now, the parent tracks via onMessagesChange
+      
+      // Notify parent component of message updates
+      onMessagesUpdate?.(finalMessages);
+      onMessagesChange?.(finalMessages.length);
     } catch (error) {
       console.error('handleSend: Error', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to get AI response';
       console.log('handleSend: Showing error alert', errorMessage);
-      Alert.alert('Error', errorMessage);
+      
+      // Show error message to user
+      Alert.alert('Error', errorMessage, [
+        { 
+          text: 'OK', 
+          onPress: () => {
+            // Remove the user message if there was an error - restore to previous state
+            setMessages(messages);
+            // Restore the input text so user can try again
+            setInputText(savedInputText);
+          }
+        }
+      ]);
+      
       onError?.(errorMessage);
       // Remove the user message if there was an error - restore to previous state
       setMessages(messages);
@@ -210,13 +236,12 @@ export default function ChatInterface({
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
       {/* Messages Container */}
-      {messages.length > 0 || isLoading ? (
+      {(messages.length > 0 || isLoading) && (
         <ScrollView
           ref={scrollViewRef}
           style={styles.messagesContainer}
           contentContainerStyle={styles.messagesContent}
           showsVerticalScrollIndicator={false}>
-          {console.log('Rendering messages', { messageCount: messages.length, messages: messages.map(m => ({ role: m.role, content: m.content.substring(0, 50) })) })}
           {messages.map((message, index) => (
             <View
               key={index}
@@ -247,7 +272,7 @@ export default function ChatInterface({
             </View>
           )}
         </ScrollView>
-      ) : null}
+      )}
 
       {/* Input Container - Matching Figma Design */}
       <View style={[styles.chatInputContainer, { paddingBottom: bottomOffset }]}>

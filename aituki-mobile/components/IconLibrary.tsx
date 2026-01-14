@@ -75,6 +75,18 @@ const IconComponents: Record<string, React.FC<{ size: number; color: string }>> 
       <Circle cx="12" cy="7" r="4" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </Svg>
   ),
+  woman: ({ size, color }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Head */}
+      <Circle cx="12" cy="8" r="3" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* Body/torso */}
+      <Path d="M12 11v6M9 14h6" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* Arms */}
+      <Path d="M7 12l2-2M15 12l-2-2" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* Legs */}
+      <Path d="M10 17l2 4 2-4" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </Svg>
+  ),
   
   // Notifications
   notifications: ({ size, color }) => (
@@ -230,6 +242,15 @@ const IconComponents: Record<string, React.FC<{ size: number; color: string }>> 
       <Path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 1 14 18.469V19a2 2 0 0 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </Svg>
   ),
+  brain: ({ size, color }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Brain outline - simplified brain shape */}
+      <Path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15A2.5 2.5 0 0 1 9.5 22c-1.5 0-2.5-1-2.5-2.5V12c0-1.1-.9-2-2-2H4.5A2.5 2.5 0 0 1 2 7.5C2 6 3 5 4.5 5H6c1.1 0 2-.9 2-2A2.5 2.5 0 0 1 9.5 2z" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15A2.5 2.5 0 0 0 14.5 22c1.5 0 2.5-1 2.5-2.5V12c0-1.1.9-2 2-2h.5A2.5 2.5 0 0 0 22 7.5C22 6 21 5 19.5 5H18c-1.1 0-2-.9-2-2A2.5 2.5 0 0 0 14.5 2z" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* Brain wrinkles/details */}
+      <Path d="M8 8h2M14 8h2M10 12h4M10 16h4" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </Svg>
+  ),
   
   // Medical & Fitness
   'local-hospital': ({ size, color }) => (
@@ -243,6 +264,18 @@ const IconComponents: Record<string, React.FC<{ size: number; color: string }>> 
       <Path d="M6.5 6.5h11v11h-11z" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
       <Path d="M6.5 17.5l5-5 5 5" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
       <Path d="M11.5 6.5l-5 5" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </Svg>
+  ),
+  sport: ({ size, color }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Running person silhouette */}
+      <Circle cx="12" cy="6" r="2.5" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* Body */}
+      <Path d="M12 8.5v4M10 10.5h4" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* Arms in running position */}
+      <Path d="M8 9l2 2M16 9l-2 2" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* Legs in running position */}
+      <Path d="M10 12.5l-2 4M14 12.5l2 4" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </Svg>
   ),
   attachment: ({ size, color }) => (
@@ -336,6 +369,52 @@ const IconComponents: Record<string, React.FC<{ size: number; color: string }>> 
   'arrow_forward': ({ size, color }) => (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path d="M5 12h14M12 5l7 7-7 7" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </Svg>
+  ),
+  'arrow-forward': ({ size, color }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M5 12h14M12 5l7 7-7 7" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </Svg>
+  ),
+  favorite: ({ size, color }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </Svg>
+  ),
+  pagoda: ({ size, color }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Pagoda structure - stacked tiers */}
+      {/* Base tier */}
+      <Path d="M4 20h16v2H4z" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* Second tier */}
+      <Path d="M6 16h12v4H6z" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* Third tier */}
+      <Path d="M8 12h8v4H8z" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* Fourth tier */}
+      <Path d="M10 8h4v4h-4z" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* Top spire */}
+      <Path d="M11 4h2v4h-2z" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* Decorative elements on sides */}
+      <Circle cx="6" cy="18" r="1" fill={color} />
+      <Circle cx="18" cy="18" r="1" fill={color} />
+      <Circle cx="8" cy="14" r="0.8" fill={color} />
+      <Circle cx="16" cy="14" r="0.8" fill={color} />
+    </Svg>
+  ),
+  star: ({ size, color }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill={color} />
+    </Svg>
+  ),
+  'star-half': ({ size, color }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77V2z" fill={color} />
+      <Path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77V2z" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </Svg>
+  ),
+  'star-outline': ({ size, color }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </Svg>
   ),
   'chat-bubble-outline': ({ size, color }) => (
