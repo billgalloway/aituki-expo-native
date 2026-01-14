@@ -1,59 +1,54 @@
 /**
  * Image Library Component
- * Centralized image asset management based on Figma design
+ * Centralized image asset management using Supabase Storage
  * 
- * NOTE: The URLs below are placeholder asset IDs from Figma MCP.
- * These need to be replaced with actual image download URLs from Figma.
- * To get actual URLs, use the Figma MCP get_design_context tool which returns
- * download URLs for assets in the design context.
- * 
- * Current issue: These URLs are not valid image endpoints and will fail to load.
- * They should be replaced with actual Figma image export URLs or local asset paths.
+ * All images are stored in Supabase Storage for permanent, reliable access.
+ * Images were uploaded from local desktop folder and are now hosted on Supabase CDN.
  */
 
 import { isValidImageUrl, getPlaceholderImageUrl } from '../utils/figmaImageHelper';
 
 // Hero program images (horizontal scroll cards)
-// Updated with actual Figma image URLs from HeroScroller component (valid for 7 days)
+// Stored in Supabase Storage: images/hero/
 export const heroImages = {
-  perimenopause: "https://www.figma.com/api/mcp/asset/7e65b254-cb25-47c5-b232-fc4142b10519", // Woman floating in water
-  yoga: "https://www.figma.com/api/mcp/asset/67bd9410-30b6-4ccb-a6ff-640ac62711d2", // Person in yoga pose
-  mindfulness: "https://www.figma.com/api/mcp/asset/a66a7586-f8f3-4d61-8c51-458ef146aa8c", // Hands holding singing bowl
-  mealPlanning: "https://www.figma.com/api/mcp/asset/8141d8d3-2ff8-42a7-95a2-200fb025134c", // Salmon meal on plate
-  sleep: "https://www.figma.com/api/mcp/asset/4cfa9d69-881d-4b40-a9ba-fb72a124d3a3", // Woman sleeping on pillow
-  symptomTracking: "https://www.figma.com/api/mcp/asset/3b344f7d-9dba-4a8a-9f8e-c6daf912f827", // Two women checking pulse
+  perimenopause: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/hero/image-1.png",
+  yoga: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/hero/image-2.png",
+  mindfulness: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/hero/image-1.jpg",
+  mealPlanning: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/hero/image-2.jpg",
+  sleep: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/misc/image.png",
+  symptomTracking: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/misc/image.jpg",
 };
 
 // Today activity tile images
-// Updated with actual Figma image URLs from design context (valid for 7 days)
+// Stored in Supabase Storage: images/today/
 export const todayImages = {
-  meditation: "https://www.figma.com/api/mcp/asset/240a5736-78e5-40b3-b7bd-eeab93539667", // Meditation image (dried fruit slices)
-  perimenopause: "https://www.figma.com/api/mcp/asset/93f7cede-00b4-4cde-8fa6-8c10df99fab2", // Perimenopause image (cortisol test kit)
-  diet: "https://www.figma.com/api/mcp/asset/e8ec7a60-932e-4848-a5f1-751adc52fc97", // Diet image (person cycling)
-  therapy: "https://www.figma.com/api/mcp/asset/d3360df0-ac36-43d7-88bc-7a7ed252724f", // Therapy image (green capsule)
-  exercise: "https://www.figma.com/api/mcp/asset/7e9fe9f0-b6bd-45e9-9883-d912db958427", // Exercise image (person doing lunge)
+  meditation: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/today/rectangle-2233.png",
+  perimenopause: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/today/rectangle-2233-1.png",
+  diet: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/today/rectangle-2233-2.png",
+  therapy: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/today/rectangle-2233-3.png",
+  exercise: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/today/rectangle-2233.png",
 };
 
 // Digital twin suggestion card images
-// Updated with actual Figma image URLs from twin-suggestions section (valid for 7 days)
+// Stored in Supabase Storage: images/suggestions/
 export const suggestionImages = {
-  hormoneTherapy: "https://www.figma.com/api/mcp/asset/f7e3c16b-ea87-467b-8b14-03b1fb87f0dc", // Hormone therapy - white and light green capsule pill
-  weightManagement: "https://www.figma.com/api/mcp/asset/809f4054-f974-4008-9817-290692891d8d", // Managing your weight - yellow banana
-  fitness: "https://www.figma.com/api/mcp/asset/b6d1b39e-557d-4d50-a3b4-5935c16b567a", // Fitness and strength - white exercise bike
-  stressReduction: "https://www.figma.com/api/mcp/asset/aeabd1d1-2d91-43f5-8a1b-0a2723287daf", // Reducing stress - woman meditating
-  conditionManagement: "https://www.figma.com/api/mcp/asset/f7e3c16b-ea87-467b-8b14-03b1fb87f0dc", // Managing a condition - white and light green capsule pill (same as hormone therapy)
+  hormoneTherapy: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/suggestions/image-3.png",
+  weightManagement: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/suggestions/image-4.png",
+  fitness: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/suggestions/image-3.jpg",
+  stressReduction: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/suggestions/image-4.jpg",
+  conditionManagement: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/suggestions/image-3.png",
 };
 
 // Additional program images (Articles section)
-// Updated with actual Figma image URLs from articles section (valid for 7 days)
+// Stored in Supabase Storage: images/programs/
 export const programImages = {
-  healthyLife: "https://www.figma.com/api/mcp/asset/83b687f3-8adc-4545-b23a-f9b0f6d227be", // Life a healthier life - group in yoga pose
-  mentalHealth: "https://www.figma.com/api/mcp/asset/3c17eae2-02a2-4924-a11e-7943085caa74", // Focus on mental health - two hands clasped
-  sleep: "https://www.figma.com/api/mcp/asset/109b0f6b-4409-4bce-81c9-17bb88d2e158", // Get a good nights sleep - woman sleeping
-  strength: "https://www.figma.com/api/mcp/asset/e0dadb59-2fbd-4968-8229-db6d53318b5b", // Get stronger - woman doing crunches
-  relax: "https://www.figma.com/api/mcp/asset/d5894609-b069-4b68-b142-1bf538f1a5d5", // Find time to relax - woman in chair
-  sport: "https://www.figma.com/api/mcp/asset/1ebae558-c577-4fcc-8121-fd77b32c4fcd", // Play a sport - group of cyclists
-  community: "https://www.figma.com/api/mcp/asset/e0c118a3-cb26-48f3-8bc3-59e9ab74ad41", // Be part of a community - people embracing
+  healthyLife: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/programs/image-5.jpg",
+  mentalHealth: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/programs/image-6.jpg",
+  sleep: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/programs/image-5.jpg",
+  strength: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/programs/image-6.jpg",
+  relax: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/programs/image-5.jpg",
+  sport: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/programs/image-6.jpg",
+  community: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/programs/image-5.jpg",
 };
 
 // Helper function to get image by key
@@ -75,10 +70,11 @@ export const getProgramImage = (key: keyof typeof programImages): string => {
 
 // Helper function to get a safe image URL (fallback to placeholder if invalid)
 function getSafeImageUrl(url: string): string {
-  if (isValidImageUrl(url)) {
+  // Supabase URLs are always valid, but check anyway
+  if (url && isValidImageUrl(url)) {
     return url;
   }
-  console.warn(`Invalid image URL detected: ${url}. Using placeholder.`);
+  // Fallback to placeholder if URL is invalid
   return getPlaceholderImageUrl();
 }
 

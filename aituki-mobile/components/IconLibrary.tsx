@@ -261,6 +261,13 @@ const IconComponents: Record<string, React.FC<{ size: number; color: string }>> 
       <Path d="M17 11l4-4m0 0v3m0-3h-3" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </Svg>
   ),
+  photo: ({ size, color }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect x="3" y="5" width="18" height="14" rx="2" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Circle cx="8.5" cy="9.5" r="1.5" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Path d="M21 15l-5-5L5 21" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </Svg>
+  ),
   
   // Additional mappings
   settings: ({ size, color }) => (

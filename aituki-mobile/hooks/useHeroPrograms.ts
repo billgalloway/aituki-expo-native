@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fetchHeroPrograms, HeroProgram } from '@/services/contentful';
-import ImageLibrary from '@/components/ImageLibrary';
+import ImageLibrary, { heroImages } from '@/components/ImageLibrary';
 import Constants from 'expo-constants';
 
 // Helper function to format duration (same as in contentful.ts)
@@ -126,22 +126,22 @@ export function useHeroPrograms() {
         if (programs.length > 0) {
           console.log(`✅ Successfully loaded ${programs.length} hero programs from Contentful`);
           
-          // Add fallback images for programs missing images
+          // Replace all images with Supabase URLs (even if Contentful provides images)
+          // This ensures we always use the uploaded Supabase images
           const programsWithFallbacks = programs.map((program, index) => {
-            if (!program.image) {
-              // Use fallback image from ImageLibrary based on index
-              const fallbackKeys: Array<keyof typeof ImageLibrary.heroImages> = [
-                'perimenopause',
-                'yoga',
-                'mindfulness',
-                'mealPlanning',
-                'sleep',
-                'symptomTracking',
-              ];
-              const fallbackKey = fallbackKeys[index % fallbackKeys.length];
-              program.image = ImageLibrary.getSafeHeroImage(fallbackKey);
-              console.log(`   Added fallback image for "${program.title}"`);
-            }
+            // Always use Supabase images, replacing any Contentful/Figma URLs
+            const fallbackKeys: Array<keyof typeof heroImages> = [
+              'perimenopause',
+              'yoga',
+              'mindfulness',
+              'mealPlanning',
+              'sleep',
+              'symptomTracking',
+            ];
+            const fallbackKey = fallbackKeys[index % fallbackKeys.length];
+            // Use direct Supabase URL instead of getSafeHeroImage to avoid validation issues
+            program.image = heroImages[fallbackKey] || ImageLibrary.getSafeHeroImage(fallbackKey);
+            console.log(`   Using Supabase image for "${program.title}": ${fallbackKey}`);
             return program;
           });
           
@@ -159,6 +159,20 @@ export function useHeroPrograms() {
         if (err instanceof Error) {
           console.error('   Error message:', err.message);
           console.error('   Error stack:', err.stack);
+          
+          // More detailed error information
+          if (err.message.includes('not initialized')) {
+            console.error('   ⚠️ Contentful client not initialized. Check:');
+            console.error('      - EXPO_PUBLIC_CONTENTFUL_SPACE_ID in app.json');
+            console.error('      - EXPO_PUBLIC_CONTENTFUL_ACCESS_TOKEN in app.json');
+            console.error('      - Rebuild the app if you just added these values');
+          } else if (err.message.includes('401') || err.message.includes('Unauthorized')) {
+            console.error('   ⚠️ Authentication failed. Check your ACCESS_TOKEN is correct.');
+          } else if (err.message.includes('404') || err.message.includes('Not Found')) {
+            console.error('   ⚠️ Space or content type not found. Check your SPACE_ID and content type name.');
+          } else if (err.message.includes('Network') || err.message.includes('fetch')) {
+            console.error('   ⚠️ Network error. Check your internet connection.');
+          }
         }
         setError(err instanceof Error ? err : new Error('Unknown error'));
         // Use fallback data on error

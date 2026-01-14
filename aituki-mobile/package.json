@@ -5,11 +5,13 @@
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "build": "npx expo export -p web --output-dir dist && cp _redirects dist/_redirects",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "upload-images": "node scripts/upload-all-images.js",
+    "upload-images-interactive": "node scripts/upload-images-interactive.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -24,9 +26,11 @@
     "expo-constants": "~18.0.13",
     "expo-crypto": "^15.0.8",
     "expo-dev-client": "~6.0.20",
+    "expo-document-picker": "^14.0.8",
     "expo-font": "~14.0.9",
     "expo-haptics": "~15.0.7",
     "expo-image": "~3.0.10",
+    "expo-image-picker": "^17.0.10",
     "expo-linking": "~8.0.11",
     "expo-router": "~6.0.21",
     "expo-splash-screen": "~31.0.13",

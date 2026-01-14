@@ -16,7 +16,9 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Pressable,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
 import IconLibrary from '@/components/IconLibrary';
 import { sendChatMessage, ChatMessage, isOpenAIConfigured } from '@/services/openai';
@@ -26,6 +28,9 @@ interface ChatInterfaceProps {
   placeholder?: string;
   onError?: (error: string) => void;
   onMessagesChange?: (messageCount: number) => void;
+  onMessagesUpdate?: (messages: ChatMessage[]) => void; // Callback to sync messages to parent
+  bottomOffset?: number; // Offset from bottom (e.g., for navigation bar)
+  initialMessages?: ChatMessage[]; // Allow parent to provide initial messages
 }
 
 export default function ChatInterface({
@@ -33,16 +38,30 @@ export default function ChatInterface({
   placeholder = "Ask me anything",
   onError,
   onMessagesChange,
+  onMessagesUpdate,
+  bottomOffset = 0,
+  initialMessages = [],
 }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const textInputRef = useRef<TextInput>(null);
+
+  // Sync with initialMessages if provided (for when component remounts with same key)
+  useEffect(() => {
+    if (initialMessages.length > 0 && messages.length === 0) {
+      console.log('Restoring initial messages', { count: initialMessages.length });
+      setMessages(initialMessages);
+    }
+  }, []); // Only run once on mount
 
   // Notify parent when messages change
   useEffect(() => {
+    console.log('Messages changed', { messageCount: messages.length, messages: messages.map(m => ({ role: m.role, contentLength: m.content.length })) });
     onMessagesChange?.(messages.length);
-  }, [messages.length, onMessagesChange]);
+    onMessagesUpdate?.(messages); // Also sync full messages array to parent
+  }, [messages, onMessagesChange, onMessagesUpdate]);
 
   // Scroll to bottom when new messages are added
   useEffect(() => {
@@ -54,7 +73,14 @@ export default function ChatInterface({
   }, [messages]);
 
   const handleSend = async () => {
-    if (!inputText.trim() || isLoading) return;
+    console.log('handleSend called', { inputText, inputTextLength: inputText.length, isLoading });
+    const trimmedText = inputText.trim();
+    if (!trimmedText || isLoading) {
+      console.log('handleSend: Early return - no text or loading', { trimmedText, isLoading });
+      return;
+    }
+
+    console.log('handleSend: Proceeding with send');
 
     if (!isOpenAIConfigured()) {
       const errorMsg = 'OpenAI API key is not configured. Please add your API key to app.json.';
@@ -65,30 +91,44 @@ export default function ChatInterface({
 
     const userMessage: ChatMessage = {
       role: 'user',
-      content: inputText.trim(),
+      content: trimmedText,
     };
 
-    // Add user message to chat
+    // Add user message to chat immediately (optimistic update)
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
+    const savedInputText = trimmedText; // Save text before clearing
     setInputText('');
     setIsLoading(true);
 
     try {
+      console.log('handleSend: Calling OpenAI API');
       const assistantResponse = await sendChatMessage(newMessages, systemPrompt);
+      
+      if (!assistantResponse) {
+        throw new Error('No response from AI');
+      }
       
       const assistantMessage: ChatMessage = {
         role: 'assistant',
         content: assistantResponse,
       };
 
-      setMessages([...newMessages, assistantMessage]);
+      const finalMessages = [...newMessages, assistantMessage];
+      setMessages(finalMessages);
+      console.log('handleSend: Success', { messageCount: finalMessages.length, messages: finalMessages.map(m => ({ role: m.role, contentLength: m.content.length })) });
+      // Also notify parent via callback if we want to lift state
+      // For now, the parent tracks via onMessagesChange
     } catch (error) {
+      console.error('handleSend: Error', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to get AI response';
+      console.log('handleSend: Showing error alert', errorMessage);
       Alert.alert('Error', errorMessage);
       onError?.(errorMessage);
-      // Remove the user message if there was an error
+      // Remove the user message if there was an error - restore to previous state
       setMessages(messages);
+      // Restore the input text so user can try again
+      setInputText(savedInputText);
     } finally {
       setIsLoading(false);
     }
@@ -109,10 +149,65 @@ export default function ChatInterface({
     );
   };
 
+  // Handle image picker functionality (platform's image picker)
+  const handleUpload = async () => {
+    try {
+      // Request permission to access media library
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'We need access to your photos to select an image.');
+        return;
+      }
+
+      // Open the platform's native image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+        allowsMultipleSelection: false,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const image = result.assets[0];
+        // For now, just show an alert with image info
+        // In production, you would upload the image to your server or attach it to the message
+        Alert.alert(
+          'Image Selected',
+          `Selected: ${image.fileName || 'Image'}\nWidth: ${image.width}px\nHeight: ${image.height}px`,
+          [{ text: 'OK' }]
+        );
+        // TODO: Upload image to server, attach to message, display in chat, etc.
+        // The image URI is available at: image.uri
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
+  };
+
+  // Handle voice-to-text functionality (platform's voice input)
+  const handleVoiceInput = () => {
+    // For now, show an alert. In production, use expo-speech or react-native-voice
+    // This will open the platform's native voice-to-text
+    Alert.alert(
+      'Voice Input',
+      'Voice-to-text functionality will open the platform\'s voice input. Install expo-speech or react-native-voice to enable this feature.',
+      [{ text: 'OK' }]
+    );
+    // TODO: Implement with expo-speech or react-native-voice
+    // This typically requires platform-specific setup
+  };
+
+  // Handle language selection (placeholder for now)
+  const handleLanguage = () => {
+    Alert.alert('Language', 'Language selection feature coming soon.', [{ text: 'OK' }]);
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
       {/* Messages Container */}
       {messages.length > 0 || isLoading ? (
@@ -121,6 +216,7 @@ export default function ChatInterface({
           style={styles.messagesContainer}
           contentContainerStyle={styles.messagesContent}
           showsVerticalScrollIndicator={false}>
+          {console.log('Rendering messages', { messageCount: messages.length, messages: messages.map(m => ({ role: m.role, content: m.content.substring(0, 50) })) })}
           {messages.map((message, index) => (
             <View
               key={index}
@@ -154,55 +250,101 @@ export default function ChatInterface({
       ) : null}
 
       {/* Input Container - Matching Figma Design */}
-      <View style={styles.chatInputContainer}>
-        <View style={styles.chatInputWrapper}>
-          {/* Text Input Area */}
-          <TextInput
-            style={styles.textInput}
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder={placeholder}
-            placeholderTextColor="rgba(31,86,97,0.6)"
-            multiline
-            maxLength={500}
-            editable={!isLoading}
-            onSubmitEditing={handleSend}
-            returnKeyType="send"
-            textAlignVertical="top"
-          />
+      <View style={[styles.chatInputContainer, { paddingBottom: bottomOffset }]}>
+        {/* Make entire chat input wrapper a hotspot to activate keyboard */}
+        <Pressable 
+          style={styles.chatInputWrapper}
+          onPress={() => {
+            // Focus the TextInput when anywhere in the wrapper is pressed (except icon buttons)
+            textInputRef.current?.focus();
+          }}>
+          {/* Text Input Area - container takes full space so Pressable receives touches in empty areas */}
+          <View style={styles.textInputContainer} pointerEvents="box-none">
+            <TextInput
+              ref={textInputRef}
+              style={styles.textInput}
+              value={inputText}
+              onChangeText={(text) => {
+                console.log('onChangeText called', { text, length: text.length });
+                setInputText(text);
+              }}
+              placeholder={placeholder}
+              placeholderTextColor="#1F5661"
+              multiline
+              maxLength={500}
+              editable={!isLoading}
+              onSubmitEditing={handleSend}
+              returnKeyType="send"
+              textAlignVertical="top"
+              keyboardType="default"
+              autoCorrect={true}
+              autoCapitalize="sentences"
+              blurOnSubmit={false}
+              showSoftInputOnFocus={true}
+            />
+          </View>
           
-          {/* Bottom row with icons */}
-          <View style={styles.inputRow}>
-            {/* Left icons: plus, language, attachment */}
-            <View style={styles.leftIcons}>
+          {/* Bottom row with icons - iconBar has its own hit areas */}
+          <View style={styles.inputRow} pointerEvents="box-none">
+            {/* Left icons: plus, language, attachment - NOT part of keyboard hotspot */}
+            <View style={styles.leftIcons} pointerEvents="box-none">
               <TouchableOpacity 
                 style={styles.iconButton}
+                onPress={(e) => {
+                  e.stopPropagation(); // Prevent triggering the Pressable
+                  handleUpload();
+                }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <IconLibrary iconName="add" size={24} color={Colors.light.textSecondary} />
+                <IconLibrary iconName="add" size={24} color="#1F5661" />
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.iconButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleLanguage();
+                }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <IconLibrary iconName="language" size={24} color={Colors.light.textSecondary} />
+                <IconLibrary iconName="language" size={24} color="#1F5661" />
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.iconButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleUpload();
+                }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <IconLibrary iconName="attachment" size={24} color={Colors.light.textSecondary} />
+                <IconLibrary iconName="photo" size={24} color="#1F5661" />
               </TouchableOpacity>
             </View>
             
             {/* Right side: voice icon and send button */}
-            <View style={styles.rightIcons}>
+            <View style={styles.rightIcons} pointerEvents="box-none">
               <TouchableOpacity 
                 style={styles.voiceButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleVoiceInput();
+                }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <IconLibrary iconName="mic" size={24} color={Colors.light.textSecondary} />
+                <IconLibrary iconName="mic" size={24} color="#1F5661" />
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.sendButton, (!inputText.trim() || isLoading) && styles.sendButtonDisabled]}
-                onPress={handleSend}
-                disabled={!inputText.trim() || isLoading}>
+                onPress={(e) => {
+                  e.stopPropagation();
+                  const currentText = textInputRef.current?.props?.value || textInputRef.current?.value || inputText || '';
+                  if (currentText.trim() && !isLoading) {
+                    if (!inputText.trim() && currentText.trim()) {
+                      setInputText(currentText);
+                      setTimeout(() => handleSend(), 100);
+                    } else {
+                      handleSend();
+                    }
+                  }
+                }}
+                disabled={!inputText.trim() || isLoading}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                activeOpacity={0.7}>
                 {isLoading ? (
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
@@ -211,7 +353,7 @@ export default function ChatInterface({
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </Pressable>
         
         {/* Clear chat button (when messages exist) */}
         {messages.length > 0 && (
@@ -229,10 +371,11 @@ export default function ChatInterface({
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     backgroundColor: Colors.light.background,
   },
   messagesContainer: {
-    maxHeight: 200, // Limit max height so it doesn't expand unnecessarily
+    flex: 1, // Take available space
   },
   messagesContent: {
     padding: Spacing.md,
@@ -274,33 +417,46 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
   },
   chatInputContainer: {
-    paddingHorizontal: 0, // Removed - handled by parent
-    paddingVertical: 0, // Removed - handled by parent
+    paddingHorizontal: 0, // Full width - no horizontal padding
+    paddingBottom: 0,
     backgroundColor: 'transparent',
     position: 'relative',
+    width: '100%', // Ensure full width
   },
   chatInputWrapper: {
-    backgroundColor: '#fafafa',
-    borderWidth: 1,
-    borderColor: 'rgba(31,86,97,0.15)',
+    backgroundColor: Colors.light.background, // White background from Figma
     borderRadius: BorderRadius.lg, // 16px
-    height: 192, // Fixed height from Figma (not minHeight)
     paddingHorizontal: 12, // 12px from Figma
-    paddingVertical: Spacing.md, // 16px from Figma
-    justifyContent: 'space-between',
+    paddingTop: 8, // 8px top padding from Figma (pt-[8px])
+    paddingBottom: Spacing.md, // 16px bottom padding (reduced from 32px to match Figma visual)
+    height: 192, // Fixed height 192px (h-[192px] from Figma) for initial state
+    justifyContent: 'space-between', // Align content to top and bottom
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4, // For Android shadow
+  },
+  textInputContainer: {
+    flex: 1, // Take up available space above icons
+    width: '100%',
+    justifyContent: 'flex-start',
   },
   textInput: {
-    flex: 1,
+    width: '100%',
     fontFamily: Typography.fontFamily,
-    fontSize: Typography.fontSize.sm,
-    color: Colors.light.text,
-    marginBottom: 0, // No margin - using flex gap instead
+    fontSize: Typography.fontSize.sm, // 14px from Figma
+    color: '#1F5661', // Secondary main color
+    marginBottom: 0,
+    padding: 0,
+    minHeight: 20, // Allow single line
+    maxHeight: 60, // Limit height to keep compact
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 'auto',
+    marginTop: 'auto', // Push icons to bottom
   },
   leftIcons: {
     flexDirection: 'row',

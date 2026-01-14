@@ -136,6 +136,34 @@ const articles = [
 export default function HomeScreen() {
   // Fetch hero programs from Contentful
   const { heroPrograms, loading: heroLoading, error } = useHeroPrograms();
+  
+  // Track image load errors and invalid URLs
+  const [imageErrors, setImageErrors] = React.useState<Set<string>>(new Set());
+  
+  // Helper to check if URL is invalid
+  const isInvalidImageUrl = (url: string | undefined): boolean => {
+    if (!url || typeof url !== 'string') {
+      return true;
+    }
+    // Check if URL has been marked as failed
+    if (imageErrors.has(url)) {
+      return true;
+    }
+    // Supabase URLs should always be valid
+    return false;
+  };
+  
+  // Debug: Log when validation runs
+  React.useEffect(() => {
+    if (heroPrograms.length > 0) {
+      heroPrograms.forEach((program) => {
+        const isInvalid = isInvalidImageUrl(program.image);
+        if (isInvalid) {
+          console.log('🚫 Invalid image URL detected:', program.image);
+        }
+      });
+    }
+  }, [heroPrograms]);
 
   // Debug: Log image URLs to verify they're being loaded
   React.useEffect(() => {
@@ -168,6 +196,12 @@ export default function HomeScreen() {
           {heroLoading ? (
             <View style={styles.heroLoadingContainer}>
               <ActivityIndicator size="large" color={Colors.light.primary} />
+              <Text style={styles.loadingText}>Loading from CMS...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>CMS Error: {error.message}</Text>
+              <Text style={styles.errorSubtext}>Showing fallback content</Text>
             </View>
           ) : (
             <ScrollView
@@ -181,18 +215,28 @@ export default function HomeScreen() {
                   style={styles.heroCardWrapper}
                 >
                   <View style={styles.heroCard}>
-                    <Image
-                      source={{ uri: program.image }}
-                      style={styles.heroImage}
-                      contentFit="cover"
-                      transition={200}
-                      onError={(error) => {
-                        console.error('Image load error:', error, 'URI:', program.image);
-                      }}
-                      onLoad={() => {
-                        console.log('Image loaded successfully:', program.image);
-                      }}
-                    />
+                    {isInvalidImageUrl(program.image) ? (
+                      <View style={[styles.heroImage, styles.imagePlaceholder]}>
+                        <IconLibrary iconName="photo" size={48} color={Colors.light.textSecondary} />
+                      </View>
+                    ) : (
+                      <Image
+                        source={{ uri: program.image }}
+                        style={styles.heroImage}
+                        contentFit="cover"
+                        transition={200}
+                        onError={(error) => {
+                          console.error('Image load error:', error, 'URI:', program.image);
+                          setImageErrors(prev => new Set(prev).add(program.image));
+                        }}
+                        onLoad={() => {
+                          console.log('Image loaded successfully:', program.image);
+                        }}
+                        placeholderContentFit="cover"
+                        recyclingKey={program.sys.id}
+                        cachePolicy="memory-disk"
+                      />
+                    )}
                     <View style={styles.heroContent}>
                       <View style={styles.heroHeader}>
                         <Text style={styles.heroTitle}>{program.title}</Text>
@@ -250,18 +294,26 @@ export default function HomeScreen() {
                     <View style={styles.dot} />
                   </View>
                 </View>
-                <Image
-                  source={{ uri: activity.image }}
-                  style={styles.todayImage}
-                  contentFit="contain"
-                  transition={200}
-                  onError={(error) => {
-                    console.error('Today image load error:', error, 'URI:', activity.image);
-                  }}
-                  onLoad={() => {
-                    console.log('Today image loaded successfully:', activity.image);
-                  }}
-                />
+                {isInvalidImageUrl(activity.image) ? (
+                  <View style={[styles.todayImage, styles.imagePlaceholder]}>
+                    <IconLibrary iconName="photo" size={32} color={Colors.light.textSecondary} />
+                  </View>
+                ) : (
+                  <Image
+                    source={{ uri: activity.image }}
+                    style={[styles.todayImage, { backgroundColor: 'transparent' }]}
+                    contentFit="contain"
+                    transition={200}
+                    onError={(error) => {
+                      console.error('Today image load error:', error, 'URI:', activity.image);
+                      setImageErrors(prev => new Set(prev).add(activity.image));
+                    }}
+                    onLoad={() => {
+                      console.log('Today image loaded successfully:', activity.image);
+                    }}
+                    placeholderContentFit="contain"
+                  />
+                )}
                 <View style={styles.todayFooter}>
                   <Text style={[styles.todayValue, activity.isHigh && styles.todayValueHigh]}>
                     {activity.time || activity.value}
@@ -293,18 +345,26 @@ export default function HomeScreen() {
           <View key={index} style={styles.suggestionCardWrapper}>
             <View style={styles.suggestionCard}>
               <View style={styles.suggestionHeader}>
-                <Image
-                  source={{ uri: suggestion.image }}
-                  style={styles.suggestionImage}
-                  contentFit="cover"
-                  transition={200}
-                  onError={(error) => {
-                    console.error('Suggestion image load error:', error, 'URI:', suggestion.image);
-                  }}
-                  onLoad={() => {
-                    console.log('Suggestion image loaded successfully:', suggestion.image);
-                  }}
-                />
+                {isInvalidImageUrl(suggestion.image) ? (
+                  <View style={[styles.suggestionImage, styles.imagePlaceholder]}>
+                    <IconLibrary iconName="photo" size={24} color={Colors.light.textSecondary} />
+                  </View>
+                ) : (
+                  <Image
+                    source={{ uri: suggestion.image }}
+                    style={[styles.suggestionImage, { backgroundColor: 'transparent' }]}
+                    contentFit="cover"
+                    transition={200}
+                    onError={(error) => {
+                      console.error('Suggestion image load error:', error, 'URI:', suggestion.image);
+                      setImageErrors(prev => new Set(prev).add(suggestion.image));
+                    }}
+                    onLoad={() => {
+                      console.log('Suggestion image loaded successfully:', suggestion.image);
+                    }}
+                    placeholderContentFit="cover"
+                  />
+                )}
                 <View style={styles.suggestionContent}>
                   <Text style={styles.suggestionTitle}>{suggestion.title}</Text>
                   <View style={styles.suggestionRating}>
@@ -329,18 +389,26 @@ export default function HomeScreen() {
           <View key={index} style={styles.articleCardWrapper}>
             <View style={styles.articleCard}>
               <View style={styles.articleImageContainer}>
-                <Image
-                  source={{ uri: article.image }}
-                  style={styles.articleImage}
-                  contentFit="cover"
-                  transition={200}
-                  onError={(error) => {
-                    console.error('Article image load error:', error, 'URI:', article.image);
-                  }}
-                  onLoad={() => {
-                    console.log('Article image loaded successfully:', article.image);
-                  }}
-                />
+                {isInvalidImageUrl(article.image) ? (
+                  <View style={[styles.articleImage, styles.imagePlaceholder]}>
+                    <IconLibrary iconName="photo" size={48} color={Colors.light.textSecondary} />
+                  </View>
+                ) : (
+                  <Image
+                    source={{ uri: article.image }}
+                    style={[styles.articleImage, { backgroundColor: 'transparent' }]}
+                    contentFit="cover"
+                    transition={200}
+                    onError={(error) => {
+                      console.error('Article image load error:', error, 'URI:', article.image);
+                      setImageErrors(prev => new Set(prev).add(article.image));
+                    }}
+                    onLoad={() => {
+                      console.log('Article image loaded successfully:', article.image);
+                    }}
+                    placeholderContentFit="cover"
+                  />
+                )}
               </View>
               <View style={styles.articleContent}>
                 <View style={styles.articleHeader}>
@@ -386,6 +454,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 200,
+    gap: Spacing.sm,
+  },
+  loadingText: {
+    fontFamily: Typography.fontFamily,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.light.textSecondary,
+    marginTop: Spacing.sm,
+  },
+  errorContainer: {
+    padding: Spacing.lg,
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  errorText: {
+    fontFamily: Typography.fontFamily,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.light.error,
+    textAlign: 'center',
+  },
+  errorSubtext: {
+    fontFamily: Typography.fontFamily,
+    fontSize: Typography.fontSize.xs,
+    color: Colors.light.textSecondary,
+    textAlign: 'center',
   },
   heroScrollContainer: {
     marginHorizontal: -Spacing.lg, // Extend to full width, breaking out of parent padding
@@ -419,6 +511,7 @@ const styles = StyleSheet.create({
   heroImage: {
     width: '100%',
     height: 170,
+    backgroundColor: '#ffffff', // White background to prevent green
   },
   heroContent: {
     padding: Spacing.md,
@@ -537,6 +630,7 @@ const styles = StyleSheet.create({
   todayImage: {
     flex: 1,
     marginVertical: Spacing.sm,
+    backgroundColor: '#ffffff', // White background to prevent green
   },
   todayFooter: {
     gap: Spacing.xs,
@@ -607,6 +701,7 @@ const styles = StyleSheet.create({
     width: 71.718,
     height: 74.341,
     borderRadius: BorderRadius.sm,
+    backgroundColor: '#ffffff', // White background to prevent green
   },
   suggestionContent: {
     flex: 1,
@@ -675,6 +770,15 @@ const styles = StyleSheet.create({
   articleImage: {
     width: '100%',
     height: 170,
+    backgroundColor: '#ffffff', // White background to prevent green
+  },
+  imagePlaceholder: {
+    backgroundColor: '#e8e8e8', // Light gray background (darker to be more visible)
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#d0d0d0', // Gray border
+    borderRadius: BorderRadius.sm,
   },
   articleContent: {
     padding: Spacing.md,

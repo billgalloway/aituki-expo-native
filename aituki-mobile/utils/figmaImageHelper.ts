@@ -31,16 +31,18 @@ export async function getFigmaImageUrls(
 
 /**
  * Validate if a URL is a valid image URL
+ * Note: Figma MCP URLs may expire after 7 days, so we'll treat them as potentially invalid
+ * and rely on the placeholder fallback system
  */
 export function isValidImageUrl(url: string): boolean {
   if (!url || typeof url !== 'string') return false;
   
-  // Figma MCP asset URLs are valid temporary URLs (valid for 7 days)
-  // They follow the pattern: https://www.figma.com/api/mcp/asset/{uuid}
+  // Figma MCP asset URLs are temporary (valid for 7 days) and may not be directly accessible
+  // We'll treat them as potentially invalid and use placeholders instead
   if (url.includes('figma.com/api/mcp/asset/')) {
-    // Validate it has a proper UUID format (basic check)
-    const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-    return uuidPattern.test(url);
+    // These URLs often expire or require special handling
+    // Return false to trigger placeholder fallback
+    return false;
   }
   
   // Check if it's a valid HTTP/HTTPS URL
@@ -54,9 +56,12 @@ export function isValidImageUrl(url: string): boolean {
 
 /**
  * Get a fallback placeholder image URL for testing
+ * Using a data URI to avoid network requests
  */
 export function getPlaceholderImageUrl(): string {
-  // Using a known working placeholder image service
-  return 'https://via.placeholder.com/400x300/69f0f0/1f5661?text=Image+Not+Loaded';
+  // Use a simple 1x1 transparent PNG data URI as a fallback
+  // This will show nothing but won't cause network errors
+  // The Image component should handle this gracefully
+  return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 }
 

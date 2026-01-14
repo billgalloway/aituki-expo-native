@@ -125,31 +125,43 @@ export async function fetchHeroPrograms(): Promise<HeroProgram[]> {
     // Log raw first entry for debugging
     if (response.items.length > 0) {
       const firstEntry = response.items[0];
-      console.log('Raw first entry fields:', Object.keys(firstEntry.fields));
-      console.log('Raw first entry sample:', {
-        title: firstEntry.fields.title,
-        duration: firstEntry.fields.duration,
-        durationDays: firstEntry.fields.durationDays,
-        minPerWeek: firstEntry.fields.minPerWeek,
-        hasImage: !!firstEntry.fields.image,
-        hasImageUrl: !!firstEntry.fields.imageUrl,
-        imageType: firstEntry.fields.image ? typeof firstEntry.fields.image : 'none',
-      });
-      
-      // Detailed image structure logging
-      if (firstEntry.fields.image) {
-        console.log('Image structure:', {
-          isLink: firstEntry.fields.image.sys?.type === 'Link',
-          linkType: firstEntry.fields.image.sys?.linkType,
-          hasFields: !!firstEntry.fields.image.fields,
-          fieldsKeys: firstEntry.fields.image.fields ? Object.keys(firstEntry.fields.image.fields) : [],
-          fileUrl: firstEntry.fields.image.fields?.file?.url,
-          fullImage: JSON.stringify(firstEntry.fields.image, null, 2).substring(0, 500),
+      // Safety check before accessing fields
+      if (firstEntry && firstEntry.fields && typeof firstEntry.fields === 'object') {
+        console.log('Raw first entry fields:', Object.keys(firstEntry.fields));
+        console.log('Raw first entry sample:', {
+          title: firstEntry.fields.title,
+          duration: firstEntry.fields.duration,
+          durationDays: firstEntry.fields.durationDays,
+          minPerWeek: firstEntry.fields.minPerWeek,
+          hasImage: !!firstEntry.fields.image,
+          hasImageUrl: !!firstEntry.fields.imageUrl,
+          imageType: firstEntry.fields.image ? typeof firstEntry.fields.image : 'none',
         });
+        
+        // Detailed image structure logging
+        if (firstEntry.fields.image) {
+          const image = firstEntry.fields.image;
+          console.log('Image structure:', {
+            isLink: image.sys?.type === 'Link',
+            linkType: image.sys?.linkType,
+            hasFields: !!image.fields,
+            fieldsKeys: (image.fields && typeof image.fields === 'object') ? Object.keys(image.fields) : [],
+            fileUrl: image.fields?.file?.url,
+            fullImage: JSON.stringify(image, null, 2).substring(0, 500),
+          });
+        }
+      } else {
+        console.warn('⚠️ First entry has invalid structure:', firstEntry);
       }
     }
 
     return response.items.map((item: any) => {
+      // Safety check: ensure item has fields
+      if (!item || !item.fields) {
+        console.warn('⚠️ Skipping item with missing fields:', item);
+        return null;
+      }
+      
       const fields = item.fields;
       
       // Handle image - can be either a Contentful asset or external URL
@@ -191,8 +203,8 @@ export async function fetchHeroPrograms(): Promise<HeroProgram[]> {
         else {
           console.warn('⚠️ Image field exists but structure is unknown:', {
             type: typeof image,
-            sysType: image.sys?.type,
-            keys: Object.keys(image),
+            sysType: image?.sys?.type,
+            keys: image && typeof image === 'object' ? Object.keys(image) : 'N/A',
           });
         }
       } else if (fields.imageUrl) {
@@ -237,12 +249,17 @@ export async function fetchHeroPrograms(): Promise<HeroProgram[]> {
         }
       }
       
-      console.log(`📊 Duration fields for "${fields.title}":`, {
-        duration: { value: duration, type: typeof fields.duration, raw: fields.duration },
-        durationDays: { value: durationDays, type: typeof fields.durationDays, raw: fields.durationDays },
-        minPerWeek: { value: minPerWeek, type: typeof fields.minPerWeek, raw: fields.minPerWeek },
-        allFields: Object.keys(fields),
-      });
+      // Safety check before logging
+      if (fields && typeof fields === 'object') {
+        console.log(`📊 Duration fields for "${fields.title || 'Unknown'}":`, {
+          duration: { value: duration, type: typeof fields.duration, raw: fields.duration },
+          durationDays: { value: durationDays, type: typeof fields.durationDays, raw: fields.durationDays },
+          minPerWeek: { value: minPerWeek, type: typeof fields.minPerWeek, raw: fields.minPerWeek },
+          allFields: Object.keys(fields),
+        });
+      } else {
+        console.warn('⚠️ Fields is not a valid object:', fields);
+      }
       
       // Format duration string: "8 weeks • Day 15 • 40 min pw"
       const formattedDuration = formatDuration(duration, durationDays, minPerWeek);
@@ -262,7 +279,7 @@ export async function fetchHeroPrograms(): Promise<HeroProgram[]> {
 
       console.log(`Mapped hero program: ${program.title} (${duration} weeks, Day ${durationDays}, ${minPerWeek} min/week)`);
       return program;
-    });
+    }).filter((program): program is HeroProgram => program !== null); // Filter out any null entries
   } catch (error: any) {
     console.error('Error fetching hero programs from Contentful:', error);
     if (error.response) {

@@ -52,3 +52,10 @@ apple-client-secret-jwt.txt
 # Android build files
 *.aab
 *.apk
+*.ipa
+*.tar.gz
+*.app/
+*.swp
+*.swo
+*~
+IMAGE_MAPPING.txt

@@ -16,23 +16,28 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar, Badge, Divider, Chip } from 'react-native-paper';
 import { IconLibrary } from './IconLibrary';
 import { Colors, Typography, BorderRadius, Shadows, Spacing } from '@/constants/theme';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface HeaderProps {
   onMenuPress?: () => void;
   onAlertsPress?: () => void;
+  hidePromptBar?: boolean; // Option to hide the prompt bar
 }
 
-const Header: React.FC<HeaderProps> = ({ onMenuPress, onAlertsPress }) => {
+const Header: React.FC<HeaderProps> = ({ onMenuPress, onAlertsPress, hidePromptBar = false }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const themeColors = isDark ? Colors.dark : Colors.light;
   const { user, signOut } = useAuth();
+  
+  // Hide prompt bar on twin screen
+  const shouldHidePromptBar = hidePromptBar || pathname?.includes('/twin');
 
   const handleMenuPress = () => {
     setMenuOpen(true);
@@ -205,15 +210,17 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onAlertsPress }) => {
             </TouchableOpacity>
           </View>
 
-          {/* Prompt Bar */}
-          <View style={dynamicStyles.promptBar}>
-            <TouchableOpacity style={dynamicStyles.promptButton} activeOpacity={0.8}>
-              <Text style={dynamicStyles.promptText}>Get help from your digital twin</Text>
-              <View style={styles.arrowContainer}>
-                <IconLibrary iconName="chevron-right" size={18} color={themeColors.text} />
-              </View>
-            </TouchableOpacity>
-          </View>
+          {/* Prompt Bar - Hidden on twin screen */}
+          {!shouldHidePromptBar && (
+            <View style={dynamicStyles.promptBar}>
+              <TouchableOpacity style={dynamicStyles.promptButton} activeOpacity={0.8}>
+                <Text style={dynamicStyles.promptText}>Get help from your digital twin</Text>
+                <View style={styles.arrowContainer}>
+                  <IconLibrary iconName="chevron-right" size={18} color={themeColors.text} />
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </SafeAreaView>
 

@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import ChatInterface from '@/components/ChatInterface';
@@ -39,9 +40,13 @@ const goalSuggestions = [
   },
 ];
 
+import { ChatMessage } from '@/services/openai';
+
 export default function TwinScreen() {
   const [showAlert, setShowAlert] = useState(true);
   const [hasMessages, setHasMessages] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const insets = useSafeAreaInsets();
   
   // System prompt for the AI twin - customize this to match your app's personality
   const aiSystemPrompt = `You are a helpful AI wellness assistant for the AiTuki app. You help users with their health and wellness goals, providing personalized guidance based on their data and preferences. Be friendly, supportive, concise, and encouraging. Focus on health, fitness, perimenopause support, wellbeing, and spiritual growth.`;
@@ -50,86 +55,103 @@ export default function TwinScreen() {
     setHasMessages(messageCount > 0);
   };
 
+  const handleMessagesUpdate = (messages: ChatMessage[]) => {
+    setChatMessages(messages);
+  };
+  
+  // Bottom navigation bar height (to position chat interface above it)
+  // From BottomNavigation: paddingTop (Spacing.md) + icon height (24) + paddingBottom (Spacing.sm) + safe area
+  const bottomNavHeight = Spacing.md + 24 + Spacing.sm + insets.bottom;
+
   return (
     <View style={styles.container}>
       <Header />
-      {/* Profile Header - Only show when no messages */}
-      {!hasMessages && (
-        <View style={styles.profileHeader}>
-          <View style={styles.dateRow}>
-            <IconLibrary iconName="calendar-today" size={24} color={Colors.light.text} />
-            <Text style={styles.dateText}>July 25th 2025</Text>
-          </View>
-          <View style={styles.profileInfo}>
-            <View style={styles.avatar}>
-              <IconLibrary iconName="person" size={32} color={Colors.light.text} />
+      {hasMessages ? (
+        // When messages exist: Chat interface takes full screen with input fixed at bottom
+        <ChatInterface
+          key="twin-chat" // Same key to preserve state across remounts
+          systemPrompt={aiSystemPrompt}
+          placeholder="Ask me anything"
+          onMessagesChange={handleMessagesChange}
+          onMessagesUpdate={handleMessagesUpdate}
+          bottomOffset={bottomNavHeight}
+          initialMessages={chatMessages}
+        />
+      ) : (
+        // Initial state: Scrollable content with chat input in flow
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}>
+          {/* Profile Header */}
+          <View style={styles.profileHeader}>
+            <View style={styles.dateRow}>
+              <IconLibrary iconName="calendar-today" size={24} color={Colors.light.text} />
+              <Text style={styles.dateText}>July 25th 2025</Text>
             </View>
-            <View style={styles.profileText}>
-              <Text style={styles.greeting}>Hello, Pilar</Text>
-              <View style={styles.badges}>
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>Pro member</Text>
+            <View style={styles.profileInfo}>
+              <View style={styles.avatar}>
+                <IconLibrary iconName="person" size={32} color={Colors.light.text} />
+              </View>
+              <View style={styles.profileText}>
+                <Text style={styles.greeting}>Hello world</Text>
+                <View style={styles.badges}>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>Pro member</Text>
+                  </View>
+                  <Text style={styles.scoreText}>Tuki Score 78%</Text>
                 </View>
-                <Text style={styles.scoreText}>Tuki Score 78%</Text>
               </View>
             </View>
           </View>
-        </View>
-      )}
 
-      {/* Welcome Message Area - Only show when messages exist */}
-      {hasMessages && (
-        <View style={styles.welcomeMessageArea}>
-          <Text style={styles.welcomeText}>
-            Hello I am Tuki your digital twin is here to help.{'\n\n'}I understand you and your body and can give helpful tips on how to stay healthy and well.{'\n\n'}Try asking me to set up a goal or ask for regular nudges to help you improve whatever you want.{'\n\n'}Ask me something...
-          </Text>
-        </View>
-      )}
-
-      {/* Chat Interface Container */}
-      <View style={styles.chatSection}>
-        <View style={styles.chatSectionInner}>
-          <ChatInterface
-            systemPrompt={aiSystemPrompt}
-            placeholder="Ask me anything"
-            onMessagesChange={handleMessagesChange}
-          />
-          {/* Alert - Only show when no messages */}
-          {!hasMessages && showAlert && (
-            <View style={styles.alert}>
-              <View style={styles.alertIconContainer}>
-                <IconLibrary iconName="info" size={22} color="#0288d1" />
-              </View>
-              <Text style={styles.alertText}>Hydration reminders</Text>
-              <TouchableOpacity 
-                style={styles.alertCloseButton}
-                onPress={() => setShowAlert(false)}>
-                <View style={styles.alertCloseIcon}>
-                  <IconLibrary iconName="close" size={20} color="#014361" />
+          {/* Chat Interface Container */}
+          <View style={styles.chatSection}>
+            <View style={styles.chatSectionInner}>
+              <ChatInterface
+                key="twin-chat" // Same key to preserve state across remounts
+                systemPrompt={aiSystemPrompt}
+                placeholder="Ask me anything"
+                onMessagesChange={handleMessagesChange}
+                onMessagesUpdate={handleMessagesUpdate}
+                bottomOffset={0}
+                initialMessages={chatMessages}
+              />
+              {/* Alert */}
+              {showAlert && (
+                <View style={styles.alert}>
+                  <View style={styles.alertIconContainer}>
+                    <IconLibrary iconName="info" size={22} color="#0288d1" />
+                  </View>
+                  <Text style={styles.alertText}>Hydration reminders</Text>
+                  <TouchableOpacity 
+                    style={styles.alertCloseButton}
+                    onPress={() => setShowAlert(false)}>
+                    <View style={styles.alertCloseIcon}>
+                      <IconLibrary iconName="close" size={20} color="#014361" />
+                    </View>
+                  </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
+              )}
             </View>
-          )}
-        </View>
-      </View>
-
-      {/* Goal Suggestions - Quick Action Cards - Only show when no messages */}
-      {!hasMessages && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.suggestionsContainer}>
-        {goalSuggestions.map((goal, index) => (
-          <View
-            key={index}
-            style={[styles.suggestionCard, { backgroundColor: goal.backgroundColor }]}>
-            <Text style={styles.suggestionTitle}>{goal.title}</Text>
-            <Text style={styles.suggestionSubtitle}>{goal.subtitle}</Text>
           </View>
-        ))}
+
+          {/* Goal Suggestions - Quick Action Cards */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.suggestionsContainer}>
+          {goalSuggestions.map((goal, index) => (
+            <View
+              key={index}
+              style={[styles.suggestionCard, { backgroundColor: goal.backgroundColor }]}>
+              <Text style={styles.suggestionTitle}>{goal.title}</Text>
+              <Text style={styles.suggestionSubtitle}>{goal.subtitle}</Text>
+            </View>
+          ))}
+          </ScrollView>
         </ScrollView>
       )}
-     
 
       <BottomNavigation activeTab="tuki" />
     </View>
@@ -140,6 +162,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.light.background,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100, // Space for bottom navigation
   },
   profileHeader: {
     backgroundColor: Colors.light.background,
@@ -205,7 +233,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontFamily: Typography.fontFamily,
-    fontSize: 13,
+    fontSize: 16,
     color: Colors.light.background,
   },
   scoreText: {
@@ -247,23 +275,14 @@ const styles = StyleSheet.create({
     color: Colors.light.textSecondary,
     opacity: 0.6,
   },
-  welcomeMessageArea: {
-    paddingHorizontal: Spacing.lg, // 24px
-    paddingVertical: Spacing.md, // 16px
-  },
-  welcomeText: {
-    fontFamily: Typography.fontFamily,
-    fontSize: Typography.fontSize.sm, // 14px
-    lineHeight: Typography.fontSize.sm * 1.43, // 1.43 line height
-    letterSpacing: 0.17,
-    color: Colors.light.text,
-  },
   chatSection: {
-    paddingTop: Spacing.md, // 16px
-    paddingHorizontal: Spacing.lg, // 24px
+    paddingHorizontal: Spacing.lg, // 24px (px-[24px] from Figma)
+    paddingTop: Spacing.md, // 16px (pt-[16px] from Figma)
+    paddingBottom: 0, // 0px (pb-[var(--0,0px)] from Figma)
   },
   chatSectionInner: {
-    gap: Spacing.md, // 16px gap between chat and alert
+    flexDirection: 'column', // Explicitly set column layout
+    gap: Spacing.xl, // 32px gap between chat and alert
   },
   alertIconContainer: {
     paddingRight: Spacing.md - 4, // 12px
