@@ -76,6 +76,8 @@ export default function TwinScreen() {
           onMessagesUpdate={handleMessagesUpdate}
           bottomOffset={bottomNavHeight}
           initialMessages={chatMessages}
+          inputHeight={120}
+          bottomPadding={32}
         />
       ) : (
         // Initial state: Scrollable content with chat input in flow
@@ -116,6 +118,8 @@ export default function TwinScreen() {
                 onMessagesUpdate={handleMessagesUpdate}
                 bottomOffset={0}
                 initialMessages={chatMessages}
+                inputHeight={192}
+                bottomPadding={24}
               />
               {/* Alert */}
               {showAlert && (

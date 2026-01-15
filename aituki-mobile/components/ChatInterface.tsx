@@ -17,6 +17,7 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
+  Keyboard,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
@@ -31,6 +32,8 @@ interface ChatInterfaceProps {
   onMessagesUpdate?: (messages: ChatMessage[]) => void; // Callback to sync messages to parent
   bottomOffset?: number; // Offset from bottom (e.g., for navigation bar)
   initialMessages?: ChatMessage[]; // Allow parent to provide initial messages
+  inputHeight?: number; // Custom height for the input box (default: 192)
+  bottomPadding?: number; // Additional bottom padding to move icons up (default: 0)
 }
 
 export default function ChatInterface({
@@ -41,10 +44,13 @@ export default function ChatInterface({
   onMessagesUpdate,
   bottomOffset = 0,
   initialMessages = [],
+  inputHeight = 192,
+  bottomPadding = 0,
 }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const textInputRef = useRef<TextInput>(null);
   
@@ -82,6 +88,31 @@ export default function ChatInterface({
       }, 100);
     }
   }, [messages]);
+
+  // Handle keyboard show/hide events
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+        // Scroll to bottom when keyboard appears
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, Platform.OS === 'ios' ? 250 : 100);
+      }
+    );
+    const hideSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   const handleSend = async () => {
     console.log('handleSend called', { inputText, inputTextLength: inputText.length, isLoading });
@@ -233,15 +264,20 @@ export default function ChatInterface({
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? bottomOffset : 0}
+      enabled={Platform.OS === 'ios'}>
       {/* Messages Container */}
       {(messages.length > 0 || isLoading) && (
         <ScrollView
           ref={scrollViewRef}
           style={styles.messagesContainer}
-          contentContainerStyle={styles.messagesContent}
-          showsVerticalScrollIndicator={false}>
+          contentContainerStyle={[
+            styles.messagesContent,
+            Platform.OS === 'android' && keyboardHeight > 0 && { paddingBottom: keyboardHeight }
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled">
           {messages.map((message, index) => (
             <View
               key={index}
@@ -275,10 +311,17 @@ export default function ChatInterface({
       )}
 
       {/* Input Container - Matching Figma Design */}
-      <View style={[styles.chatInputContainer, { paddingBottom: bottomOffset }]}>
+      <View style={[
+        styles.chatInputContainer, 
+        { 
+          paddingBottom: Platform.OS === 'android' 
+            ? bottomOffset + bottomPadding + keyboardHeight 
+            : bottomOffset + bottomPadding 
+        }
+      ]}>
         {/* Make entire chat input wrapper a hotspot to activate keyboard */}
         <Pressable 
-          style={styles.chatInputWrapper}
+          style={[styles.chatInputWrapper, { height: inputHeight }]}
           onPress={() => {
             // Focus the TextInput when anywhere in the wrapper is pressed (except icon buttons)
             textInputRef.current?.focus();
@@ -454,7 +497,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, // 12px from Figma
     paddingTop: 8, // 8px top padding from Figma (pt-[8px])
     paddingBottom: Spacing.md, // 16px bottom padding (reduced from 32px to match Figma visual)
-    height: 192, // Fixed height 192px (h-[192px] from Figma) for initial state
+    height: undefined, // Will be set dynamically via inline style
     justifyContent: 'space-between', // Align content to top and bottom
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
