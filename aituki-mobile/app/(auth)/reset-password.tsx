@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   input: {
-    fontFamily: 'Open Sans',
+    fontFamily: Typography.fontFamily,
     fontSize: 16,
     fontWeight: '400',
     lineHeight: 24,

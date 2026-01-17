@@ -46,6 +46,7 @@ export default function TwinScreen() {
   const [showAlert, setShowAlert] = useState(true);
   const [hasMessages, setHasMessages] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const insets = useSafeAreaInsets();
   
   // System prompt for the AI twin - customize this to match your app's personality
@@ -59,6 +60,10 @@ export default function TwinScreen() {
     setChatMessages(messages);
   };
   
+  const handleLoadingChange = (loading: boolean) => {
+    setIsLoading(loading);
+  };
+  
   // Bottom navigation bar height (to position chat interface above it)
   // From BottomNavigation: paddingTop (Spacing.md) + icon height (24) + paddingBottom (Spacing.sm) + safe area
   const bottomNavHeight = Spacing.md + 24 + Spacing.sm + insets.bottom;
@@ -67,15 +72,17 @@ export default function TwinScreen() {
     <View style={styles.container}>
       <Header />
       {hasMessages ? (
-        // When messages exist: Chat interface takes full screen with input fixed at bottom
+        // When messages exist: Chat interface takes remaining space
         <ChatInterface
           key="twin-chat" // Same key to preserve state across remounts
           systemPrompt={aiSystemPrompt}
           placeholder="Ask me anything"
           onMessagesChange={handleMessagesChange}
           onMessagesUpdate={handleMessagesUpdate}
+          onLoadingChange={handleLoadingChange}
           bottomOffset={bottomNavHeight}
           initialMessages={chatMessages}
+          initialLoading={isLoading}
           inputHeight={120}
           bottomPadding={32}
         />
@@ -85,18 +92,22 @@ export default function TwinScreen() {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}>
-          {/* Profile Header */}
+          {/* Profile Header - Inside scrollable content */}
           <View style={styles.profileHeader}>
             <View style={styles.dateRow}>
               <IconLibrary iconName="calendar-today" size={24} color={Colors.light.text} />
               <Text style={styles.dateText}>July 25th 2025</Text>
+              <View style={styles.dateRowSpacer} />
+              <TouchableOpacity>
+                <IconLibrary iconName="more-vert" size={24} color={Colors.light.text} />
+              </TouchableOpacity>
             </View>
             <View style={styles.profileInfo}>
               <View style={styles.avatar}>
                 <IconLibrary iconName="person" size={32} color={Colors.light.text} />
               </View>
               <View style={styles.profileText}>
-                <Text style={styles.greeting}>Hello world</Text>
+                <Text style={styles.greeting}>Hello, Pilar</Text>
                 <View style={styles.badges}>
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>Pro member</Text>
@@ -106,8 +117,8 @@ export default function TwinScreen() {
               </View>
             </View>
           </View>
-
-          {/* Chat Interface Container */}
+          
+          {/* Chat Interface Container - Directly below profile header */}
           <View style={styles.chatSection}>
             <View style={styles.chatSectionInner}>
               <ChatInterface
@@ -116,10 +127,12 @@ export default function TwinScreen() {
                 placeholder="Ask me anything"
                 onMessagesChange={handleMessagesChange}
                 onMessagesUpdate={handleMessagesUpdate}
+                onLoadingChange={handleLoadingChange}
                 bottomOffset={0}
                 initialMessages={chatMessages}
+                initialLoading={isLoading}
                 inputHeight={192}
-                bottomPadding={24}
+                bottomPadding={32}
               />
               {/* Alert */}
               {showAlert && (
@@ -171,28 +184,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100, // Space for bottom navigation
+    paddingBottom: 0, // No extra padding - bottom nav overlays content
+    gap: 10, // 10px gap between children (gap-[10px] from Figma)
   },
   profileHeader: {
-    backgroundColor: Colors.light.background,
-    borderBottomLeftRadius: BorderRadius.full,
-    borderBottomRightRadius: BorderRadius.full,
-    paddingTop: 0,
+    backgroundColor: '#efffff', // Primary paper background green from Figma
+    borderBottomLeftRadius: BorderRadius.full, // 32px
+    borderBottomRightRadius: BorderRadius.full, // 32px
+    paddingTop: Spacing.md, // 16px
     paddingBottom: Spacing.md, // 16px
     paddingLeft: Spacing.lg, // 24px
     paddingRight: Spacing.sm, // 8px
+    gap: 12, // 12px gap between date and profile info
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 2,
+    marginBottom: 0, // No margin - gap is handled by parent container
   },
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm, // 8px
-    marginTop: Spacing.md, // 16px above dateRow
-    marginBottom: Spacing.sm, // 8px gap after date row
+    gap: Spacing.sm, // 8px gap between icon and text
+    width: '100%',
+  },
+  dateRowSpacer: {
+    flex: 1, // Push the more icon to the right
   },
   dateText: {
     fontFamily: Typography.fontFamily,
@@ -281,12 +299,15 @@ const styles = StyleSheet.create({
   },
   chatSection: {
     paddingHorizontal: Spacing.lg, // 24px (px-[24px] from Figma)
-    paddingTop: Spacing.md, // 16px (pt-[16px] from Figma)
+    paddingTop: 0, // No top padding - gap is handled by parent container (gap-[10px])
     paddingBottom: 0, // 0px (pb-[var(--0,0px)] from Figma)
+    marginTop: 0, // Ensure no additional margin
+    marginBottom: 32, // 32px gap below chat section (mb-[32px] from Figma)
   },
   chatSectionInner: {
     flexDirection: 'column', // Explicitly set column layout
-    gap: Spacing.xl, // 32px gap between chat and alert
+    gap: Spacing.md, // 16px gap between chat and alert (gap-[var(--sds-size-space-400,16px)] from Figma)
+    marginTop: 0, // Ensure no additional margin
   },
   alertIconContainer: {
     paddingRight: Spacing.md - 4, // 12px

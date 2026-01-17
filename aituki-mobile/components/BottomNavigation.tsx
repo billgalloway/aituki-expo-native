@@ -70,11 +70,38 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
   };
 
   const dynamicStyles = StyleSheet.create({
-    container: {
+    shadowContainer: {
       position: 'absolute',
       bottom: 0,
       left: 0,
       right: 0,
+      borderTopLeftRadius: BorderRadius.full,
+      borderTopRightRadius: BorderRadius.full,
+      overflow: 'visible', // Allow shadows to be visible
+    },
+    shadowLayer1: {
+      // First shadow: radius 6px, opacity 0.15 (15%)
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.15,
+      shadowRadius: 6,
+      elevation: 3, // For Android
+      borderTopLeftRadius: BorderRadius.full,
+      borderTopRightRadius: BorderRadius.full,
+      overflow: 'visible',
+    },
+    shadowLayer2: {
+      // Second shadow: radius 2px, opacity 0.25 (25%)
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.25,
+      shadowRadius: 2,
+      elevation: 2, // For Android
+      borderTopLeftRadius: BorderRadius.full,
+      borderTopRightRadius: BorderRadius.full,
+      overflow: 'visible',
+    },
+    container: {
       backgroundColor: themeColors.primary,
       borderTopLeftRadius: BorderRadius.full, // 32px top left
       borderTopRightRadius: BorderRadius.full, // 32px top right
@@ -86,7 +113,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      ...Shadows.medium,
+      overflow: 'hidden',
     },
     tabButtonActive: {
       backgroundColor: themeColors.primaryDark,
@@ -94,27 +121,33 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
   });
 
   return (
-    <View style={[dynamicStyles.container, { paddingBottom: Spacing.sm + insets.bottom }]}>
-      {navigationItems.map((item, index) => {
-        const isActive = currentTab === item.name;
-        return (
-          <TouchableOpacity
-            key={index}
-            onPress={() => handleTabPress(item)}
-            style={[
-              styles.tabButton,
-              isActive && dynamicStyles.tabButtonActive,
-            ]}
-            activeOpacity={0.7}
-          >
-            <IconLibrary
-              iconName={item.iconName}
-              size={24}
-              color={themeColors.text}
-            />
-          </TouchableOpacity>
-        );
-      })}
+    <View style={dynamicStyles.shadowContainer}>
+      <View style={dynamicStyles.shadowLayer1}>
+        <View style={dynamicStyles.shadowLayer2}>
+          <View style={[dynamicStyles.container, { paddingBottom: Spacing.sm + insets.bottom }]}>
+            {navigationItems.map((item, index) => {
+              const isActive = currentTab === item.name;
+              return (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => handleTabPress(item)}
+                  style={[
+                    styles.tabButton,
+                    isActive && dynamicStyles.tabButtonActive,
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <IconLibrary
+                    iconName={item.iconName}
+                    size={24}
+                    color={themeColors.text}
+                  />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </View>
     </View>
   );
 };

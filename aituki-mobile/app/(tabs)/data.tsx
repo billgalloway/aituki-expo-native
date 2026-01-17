@@ -3,30 +3,42 @@
  * Connect devices and manage health data
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
 import IconLibrary from '@/components/IconLibrary';
+import { deviceImages, serviceImages } from '@/components/ImageLibrary';
 
 const devices = [
-  { name: 'Apple', icon: 'watch' },
-  { name: 'Android', icon: 'watch' },
-  { name: 'Fitbit', icon: 'watch' },
-  { name: 'Auro', icon: 'watch' },
+  { name: 'Apple', imageKey: 'apple' as keyof typeof deviceImages, fallbackIcon: 'watch' },
+  { name: 'Android', imageKey: 'android' as keyof typeof deviceImages, fallbackIcon: 'watch' },
+  { name: 'Fitbit', imageKey: 'fitbit' as keyof typeof deviceImages, fallbackIcon: 'watch' },
+  { name: 'Auro', imageKey: 'auro' as keyof typeof deviceImages, fallbackIcon: 'watch' },
 ];
 
 const services = [
-  { name: 'Add data manually', icon: 'edit' },
-  { name: 'BUPA', icon: 'local-hospital' },
-  { name: 'Virgin fitness', icon: 'fitness-center' },
-  { name: 'NHS', icon: 'local-hospital' },
-  { name: 'AXA', icon: 'local-hospital' },
-  { name: 'Vitality', icon: 'local-hospital' },
+  { name: 'Add data manually', imageKey: 'manual' as keyof typeof serviceImages, fallbackIcon: 'edit' },
+  { name: 'BUPA', imageKey: 'bupa' as keyof typeof serviceImages, fallbackIcon: 'local-hospital' },
+  { name: 'Virgin fitness', imageKey: 'virgin' as keyof typeof serviceImages, fallbackIcon: 'fitness-center' },
+  { name: 'NHS', imageKey: 'nhs' as keyof typeof serviceImages, fallbackIcon: 'local-hospital' },
+  { name: 'AXA', imageKey: 'axa' as keyof typeof serviceImages, fallbackIcon: 'local-hospital' },
+  { name: 'Vitality', imageKey: 'vitality' as keyof typeof serviceImages, fallbackIcon: 'local-hospital' },
 ];
 
+// Enable images now that they're in Supabase
+const USE_IMAGES = true;
+
 export default function DataScreen() {
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+
+  const handleImageError = (key: string, url: string) => {
+    console.log(`❌ Image failed to load: ${key}`, url);
+    setImageErrors(prev => ({ ...prev, [key]: true }));
+  };
+
   return (
     <View style={styles.container}>
       <Header />
@@ -42,38 +54,74 @@ export default function DataScreen() {
 
         {/* Devices Section */}
         <View style={styles.section}>
-          {devices.map((device, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.listItem,
-                index < devices.length - 1 && styles.listItemBorder,
-              ]}>
-              <View style={styles.listItemIcon}>
-                <IconLibrary iconName={device.icon} size={24} color={Colors.light.text} />
-              </View>
-              <Text style={styles.listItemText}>{device.name}</Text>
-              <IconLibrary iconName="chevron-right" size={24} color={Colors.light.textSecondary} />
-            </TouchableOpacity>
-          ))}
+          {devices.map((device, index) => {
+            const imageKey = `device-${device.imageKey}`;
+            const hasError = imageErrors[imageKey];
+            const imageUrl = deviceImages[device.imageKey];
+
+            return (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.listItem,
+                  index < devices.length - 1 && styles.listItemBorder,
+                ]}>
+                <View style={styles.listItemIcon}>
+                  {USE_IMAGES && !hasError && imageUrl ? (
+                    <Image
+                      source={{ uri: imageUrl }}
+                      style={styles.listItemImage}
+                      contentFit="contain"
+                      transition={200}
+                      onError={() => handleImageError(imageKey, imageUrl)}
+                      placeholderContentFit="contain"
+                      cachePolicy="memory-disk"
+                    />
+                  ) : (
+                    <IconLibrary iconName={device.fallbackIcon} size={24} color={Colors.light.text} />
+                  )}
+                </View>
+                <Text style={styles.listItemText}>{device.name}</Text>
+                <IconLibrary iconName="chevron-right" size={24} color={Colors.light.textSecondary} />
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Services Section */}
         <View style={styles.section}>
-          {services.map((service, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.listItem,
-                index < services.length - 1 && styles.listItemBorder,
-              ]}>
-              <View style={styles.listItemIcon}>
-                <IconLibrary iconName={service.icon} size={24} color={Colors.light.text} />
-              </View>
-              <Text style={styles.listItemText}>{service.name}</Text>
-              <IconLibrary iconName="chevron-right" size={24} color={Colors.light.textSecondary} />
-            </TouchableOpacity>
-          ))}
+          {services.map((service, index) => {
+            const imageKey = `service-${service.imageKey}`;
+            const hasError = imageErrors[imageKey];
+            const imageUrl = serviceImages[service.imageKey];
+
+            return (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.listItem,
+                  index < services.length - 1 && styles.listItemBorder,
+                ]}>
+                <View style={styles.listItemIcon}>
+                  {USE_IMAGES && !hasError && imageUrl ? (
+                    <Image
+                      source={{ uri: imageUrl }}
+                      style={styles.listItemImage}
+                      contentFit="contain"
+                      transition={200}
+                      onError={() => handleImageError(imageKey, imageUrl)}
+                      placeholderContentFit="contain"
+                      cachePolicy="memory-disk"
+                    />
+                  ) : (
+                    <IconLibrary iconName={service.fallbackIcon} size={24} color={Colors.light.text} />
+                  )}
+                </View>
+                <Text style={styles.listItemText}>{service.name}</Text>
+                <IconLibrary iconName="chevron-right" size={24} color={Colors.light.textSecondary} />
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </ScrollView>
       <BottomNavigation activeTab="data" />
@@ -134,6 +182,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(31, 86, 97, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  listItemImage: {
+    width: '100%',
+    height: '100%',
   },
   listItemText: {
     flex: 1,

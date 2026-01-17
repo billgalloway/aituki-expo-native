@@ -35,6 +35,9 @@ yarn-error.*
 
 # Google Play Service Account Key (NEVER COMMIT THIS!)
 google-play-api-key.json
+credentials/*.json
+credentials/*.p8
+credentials/*.txt
 *.json.key
 
 # typescript
@@ -45,7 +48,14 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Environment files
 .env
+.env*.local
+config/*.env
+
+# Credentials directory (NEVER COMMIT!)
+credentials/
 AuthKey_*.p8
 apple-client-secret-jwt.txt
 

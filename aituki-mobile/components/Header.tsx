@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar, Badge, Divider, Chip } from 'react-native-paper';
+// import { LinearGradient } from 'expo-linear-gradient'; // Using border-based solution instead
 import { IconLibrary } from './IconLibrary';
 import { Colors, Typography, BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import { useRouter, usePathname } from 'expo-router';
@@ -24,16 +25,16 @@ interface HeaderProps {
   onMenuPress?: () => void;
   onAlertsPress?: () => void;
   hidePromptBar?: boolean; // Option to hide the prompt bar
+  onPromptPress?: () => void; // Callback when prompt bar is pressed
 }
 
-const Header: React.FC<HeaderProps> = ({ onMenuPress, onAlertsPress, hidePromptBar = false }) => {
+const Header: React.FC<HeaderProps> = ({ onMenuPress, onAlertsPress, hidePromptBar = false, onPromptPress }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const themeColors = isDark ? Colors.dark : Colors.light;
+  const themeColors = Colors.light; // Dark mode is currently disabled
   const { user, signOut } = useAuth();
   
   // Hide prompt bar on twin screen
@@ -59,13 +60,36 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onAlertsPress, hidePromptB
 
   // Create dynamic styles based on theme
   const dynamicStyles = StyleSheet.create({
+    headerContainer: {
+      borderRadius: BorderRadius.full,
+      overflow: 'visible', // Allow shadows to be visible
+    },
+    shadowLayer1: {
+      // First shadow: radius 6px, opacity 0.15 (15%)
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.15,
+      shadowRadius: 6,
+      elevation: 3, // For Android
+      borderRadius: BorderRadius.full,
+      overflow: 'visible',
+    },
+    shadowLayer2: {
+      // Second shadow: radius 2px, opacity 0.25 (25%)
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.25,
+      shadowRadius: 2,
+      elevation: 2, // For Android
+      borderRadius: BorderRadius.full,
+      overflow: 'visible',
+    },
     safeArea: {
       backgroundColor: themeColors.primary,
       borderBottomLeftRadius: BorderRadius.full,
       borderBottomRightRadius: BorderRadius.full,
       overflow: 'hidden',
       zIndex: 10,
-      // No elevation on safeArea to prevent shadow above
     },
     header: {
       backgroundColor: 'transparent',
@@ -73,7 +97,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onAlertsPress, hidePromptB
       borderBottomRightRadius: BorderRadius.full,
       overflow: 'hidden',
       zIndex: 10,
-      // No elevation on header to prevent shadow above
     },
     iconBar: {
       flexDirection: 'row',
@@ -96,22 +119,65 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onAlertsPress, hidePromptB
       shadowRadius: 4,
       elevation: 4, // For Android
     },
+    promptButtonContainer: {
+      position: 'relative',
+    },
     promptButton: {
       backgroundColor: themeColors.background,
       borderRadius: BorderRadius.full,
-      paddingVertical: Spacing.md,
-      paddingHorizontal: Spacing.md + 6,
+      paddingVertical: Spacing.md, // 16px
+      paddingHorizontal: 22, // 22px from Figma
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
-      gap: Spacing.sm,
+      justifyContent: 'flex-start', // Align left
+      gap: Spacing.sm, // 8px gap between icon and text
+    },
+    innerShadow: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: BorderRadius.full,
+      overflow: 'hidden',
+    },
+    keyline1: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: BorderRadius.full,
+      borderWidth: 1,
+      borderColor: 'rgba(70, 116, 126, 0.25)', // 1px border at 25% opacity
+    },
+    keyline2: {
+      position: 'absolute',
+      top: 1,
+      left: 1,
+      right: 1,
+      bottom: 1,
+      borderRadius: BorderRadius.full - 1,
+      borderWidth: 2,
+      borderColor: 'rgba(70, 116, 126, 0.15)', // 2px border at 15% opacity
+    },
+    keyline3: {
+      position: 'absolute',
+      top: 2,
+      left: 2,
+      right: 2,
+      bottom: 2,
+      borderRadius: BorderRadius.full - 2,
+      borderWidth: 3,
+      borderColor: 'rgba(70, 116, 126, 0.05)', // 3px border at 5% opacity
     },
     promptText: {
       fontFamily: Typography.fontFamily,
-      fontSize: Typography.fontSize.sm,
-      fontWeight: Typography.fontWeight.regular,
+      fontSize: Typography.fontSize.sm, // 14px
+      fontWeight: Typography.fontWeight.regular, // 400
       color: themeColors.text,
-      letterSpacing: Typography.letterSpacing.wider,
+      lineHeight: 24, // 24px line height from Figma
+      letterSpacing: Typography.letterSpacing.wider, // 0.4px
     },
     avatar: {
       backgroundColor: themeColors.primaryLight,
@@ -178,7 +244,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onAlertsPress, hidePromptB
 
   return (
     <>
-      <SafeAreaView edges={['top']} style={dynamicStyles.safeArea}>
+      <View style={dynamicStyles.headerContainer}>
+        <View style={dynamicStyles.shadowLayer1}>
+          <View style={dynamicStyles.shadowLayer2}>
+            <SafeAreaView edges={['top']} style={dynamicStyles.safeArea}>
         <View style={dynamicStyles.header}>
           {/* Icon Bar */}
           <View style={dynamicStyles.iconBar}>
@@ -213,16 +282,41 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onAlertsPress, hidePromptB
           {/* Prompt Bar - Hidden on twin screen */}
           {!shouldHidePromptBar && (
             <View style={dynamicStyles.promptBar}>
-              <TouchableOpacity style={dynamicStyles.promptButton} activeOpacity={0.8}>
-                <Text style={dynamicStyles.promptText}>Get help from your digital twin</Text>
-                <View style={styles.arrowContainer}>
-                  <IconLibrary iconName="chevron-right" size={18} color={themeColors.text} />
+              <View style={dynamicStyles.promptButtonContainer}>
+                <TouchableOpacity 
+                  style={dynamicStyles.promptButton} 
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    if (onPromptPress) {
+                      onPromptPress();
+                    } else {
+                      // Default behavior: navigate to twin tab with focus parameter
+                      router.push('/twin?focusInput=true');
+                    }
+                  }}
+                >
+                  <Text style={[dynamicStyles.promptText, { flex: 1 }]}>Ask AiTuki anything</Text>
+                  <View style={styles.arrowContainer}>
+                    <IconLibrary iconName="chevron-right" size={18} color={themeColors.text} />
+                  </View>
+                </TouchableOpacity>
+                {/* Inner shadow overlay - 3 keyline borders to simulate inset shadow */}
+                <View style={dynamicStyles.innerShadow} pointerEvents="none">
+                  {/* Keyline 1: 1px border at 0.5 opacity (50%) */}
+                  <View style={dynamicStyles.keyline1} />
+                  {/* Keyline 2: 2px border at 0.25 opacity (25%) */}
+                  <View style={dynamicStyles.keyline2} />
+                  {/* Keyline 3: 3px border at 0.15 opacity (15%) */}
+                  <View style={dynamicStyles.keyline3} />
                 </View>
-              </TouchableOpacity>
+              </View>
             </View>
           )}
         </View>
       </SafeAreaView>
+          </View>
+        </View>
+      </View>
 
       {/* Menu Drawer Modal */}
       <Modal
@@ -386,6 +480,12 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.regular,
     color: Colors.light.text,
     letterSpacing: Typography.letterSpacing.wider,
+  },
+  iconLeftContainer: {
+    width: 18,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   arrowContainer: {
     width: 18,

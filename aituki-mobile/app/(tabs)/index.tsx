@@ -21,6 +21,7 @@ const nudges = [
     action: 'Try 5-min breathing exercise',
     icon: 'favorite',
     backgroundColor: 'rgba(105, 240, 240, 0.08)',
+    iconBackgroundColor: '#ffebee', // Light pink/red for emotional
   },
   {
     type: 'Physical',
@@ -28,6 +29,7 @@ const nudges = [
     action: 'Take a short walk',
     icon: 'fitness-center',
     backgroundColor: 'rgba(105, 240, 240, 0.08)',
+    iconBackgroundColor: '#e8f5e9', // Light green for physical
   },
   {
     type: 'Mental',
@@ -35,6 +37,7 @@ const nudges = [
     action: 'Aim for 7+ hrs tonigh',
     icon: 'psychology',
     backgroundColor: 'rgba(105, 240, 240, 0.08)',
+    iconBackgroundColor: '#e3f2fd', // Light blue for mental
   },
   {
     type: 'Energy',
@@ -42,6 +45,7 @@ const nudges = [
     action: 'Consider a 10-min break',
     icon: 'person',
     backgroundColor: 'rgba(105, 240, 240, 0.08)',
+    iconBackgroundColor: '#fff9c4', // Light yellow for energy
   },
 ];
 
@@ -221,8 +225,12 @@ export default function HomeScreen() {
           </View>
           {nudges.map((nudge, index) => (
             <View key={index} style={[styles.nudgeCard, { backgroundColor: nudge.backgroundColor }]}>
-              <View style={styles.nudgeIconContainer}>
-                <IconLibrary iconName={nudge.icon as any} size={35} color={Colors.light.text} />
+              <View style={[styles.nudgeIconContainer, { backgroundColor: nudge.iconBackgroundColor }]}>
+                <IconLibrary 
+                  iconName={nudge.icon as any} 
+                  size={nudge.icon === 'favorite' ? 17 : 23} 
+                  color={Colors.light.text} 
+                />
               </View>
               <View style={styles.nudgeContent}>
                 <Text style={styles.nudgeType}>{nudge.type}</Text>
@@ -359,7 +367,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    paddingVertical: Spacing.md,
   },
   sectionTitle: {
     fontFamily: Typography.fontFamily,
@@ -423,9 +430,11 @@ const styles = StyleSheet.create({
     ...Shadows.small,
   },
   nudgeIconContainer: {
-    width: 90.905,
-    height: 90.905,
-    borderRadius: 45.4525,
+    width: 50
+
+    ,
+    height: 50  ,
+    borderRadius: 50 ,
     backgroundColor: Colors.light.background,
     alignItems: 'center',
     justifyContent: 'center',

@@ -51,6 +51,26 @@ export const programImages = {
   community: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/programs/image-5.jpg",
 };
 
+// Device icons for data tab
+// Stored in Supabase Storage: images/data/
+export const deviceImages = {
+  apple: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/data/apple.png",
+  android: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/data/android.png",
+  fitbit: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/data/fitbit.png",
+  auro: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/data/auro.png",
+};
+
+// Service icons for data tab
+// Stored in Supabase Storage: images/data/
+export const serviceImages = {
+  manual: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/data/manual.png",
+  bupa: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/data/bupa.png",
+  virgin: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/data/virgin.png",
+  nhs: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/data/nhs.png",
+  axa: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/data/axa.png",
+  vitality: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/data/vitality.png",
+};
+
 // Helper function to get image by key
 export const getHeroImage = (key: keyof typeof heroImages): string => {
   return heroImages[key];
@@ -66,6 +86,14 @@ export const getSuggestionImage = (key: keyof typeof suggestionImages): string =
 
 export const getProgramImage = (key: keyof typeof programImages): string => {
   return programImages[key];
+};
+
+export const getDeviceImage = (key: keyof typeof deviceImages): string => {
+  return deviceImages[key];
+};
+
+export const getServiceImage = (key: keyof typeof serviceImages): string => {
+  return serviceImages[key];
 };
 
 // Helper function to get a safe image URL (fallback to placeholder if invalid)
@@ -84,15 +112,21 @@ const ImageLibrary = {
   today: todayImages,
   suggestions: suggestionImages,
   programs: programImages,
+  devices: deviceImages,
+  services: serviceImages,
   getHeroImage,
   getTodayImage,
   getSuggestionImage,
   getProgramImage,
+  getDeviceImage,
+  getServiceImage,
   // Safe getters that validate URLs and provide fallbacks
   getSafeHeroImage: (key: keyof typeof heroImages): string => getSafeImageUrl(heroImages[key]),
   getSafeTodayImage: (key: keyof typeof todayImages): string => getSafeImageUrl(todayImages[key]),
   getSafeSuggestionImage: (key: keyof typeof suggestionImages): string => getSafeImageUrl(suggestionImages[key]),
   getSafeProgramImage: (key: keyof typeof programImages): string => getSafeImageUrl(programImages[key]),
+  getSafeDeviceImage: (key: keyof typeof deviceImages): string => getSafeImageUrl(deviceImages[key]),
+  getSafeServiceImage: (key: keyof typeof serviceImages): string => getSafeImageUrl(serviceImages[key]),
 };
 
 export default ImageLibrary;

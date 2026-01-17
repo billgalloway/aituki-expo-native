@@ -75,7 +75,7 @@ export const Colors = {
   },
 };
 
-// Typography
+// Typography - Matching Figma MUI Typography Component
 export const Typography = {
   fontFamily: Platform.select({
     ios: 'Nunito Sans',
@@ -93,6 +93,8 @@ export const Typography = {
     base: 16,
     lg: 20,
     xl: 24,
+    h2: 34, // 2.125rem
+    h1: 34, // 2.125rem
   },
   lineHeight: {
     xs: 1.66,
@@ -106,6 +108,142 @@ export const Typography = {
     normal: 0.15,
     wide: 0.25,
     wider: 0.4,
+  },
+  // Typography variants matching Figma MUI Typography component
+  variants: {
+    h1: {
+      fontFamily: Platform.select({
+        ios: 'Nunito Sans',
+        android: 'Nunito Sans',
+        default: 'Nunito Sans, sans-serif',
+      }),
+      fontSize: 34, // 2.125rem
+      fontWeight: '500' as const,
+      lineHeight: 40, // var(--7,40px)
+      letterSpacing: -1.5,
+    },
+    h2: {
+      fontFamily: Platform.select({
+        ios: 'Nunito Sans',
+        android: 'Nunito Sans',
+        default: 'Nunito Sans, sans-serif',
+      }),
+      fontSize: 34, // 2.125rem
+      fontWeight: '500' as const,
+      lineHeight: 1.2,
+      letterSpacing: -0.5,
+    },
+    h3: {
+      fontFamily: Platform.select({
+        ios: 'Nunito Sans',
+        android: 'Nunito Sans',
+        default: 'Nunito Sans, sans-serif',
+      }),
+      fontSize: 24, // 1.5rem
+      fontWeight: '500' as const,
+      lineHeight: 1.167,
+      letterSpacing: 0,
+    },
+    h4: {
+      fontFamily: Platform.select({
+        ios: 'Nunito Sans',
+        android: 'Nunito Sans',
+        default: 'Nunito Sans, sans-serif',
+      }),
+      fontSize: 20, // 1.25rem
+      fontWeight: '500' as const,
+      lineHeight: 1.235,
+      letterSpacing: 0.25,
+    },
+    h5: {
+      fontFamily: Platform.select({
+        ios: 'Nunito Sans',
+        android: 'Nunito Sans',
+        default: 'Nunito Sans, sans-serif',
+      }),
+      fontSize: 16,
+      fontWeight: '500' as const,
+      lineHeight: 1.334,
+      letterSpacing: 0,
+    },
+    h6: {
+      fontFamily: Platform.select({
+        ios: 'Nunito Sans',
+        android: 'Nunito Sans',
+        default: 'Nunito Sans, sans-serif',
+      }),
+      fontSize: 14, // 0.875rem
+      fontWeight: '500' as const,
+      lineHeight: 1.6,
+      letterSpacing: 0.15,
+    },
+    subtitle1: {
+      fontFamily: Platform.select({
+        ios: 'Nunito Sans',
+        android: 'Nunito Sans',
+        default: 'Nunito Sans, sans-serif',
+      }),
+      fontSize: 16, // 1rem
+      fontWeight: '500' as const,
+      lineHeight: 1.75,
+      letterSpacing: 0.15,
+    },
+    subtitle2: {
+      fontFamily: Platform.select({
+        ios: 'Nunito Sans',
+        android: 'Nunito Sans',
+        default: 'Nunito Sans, sans-serif',
+      }),
+      fontSize: 14, // 0.875rem
+      fontWeight: '500' as const,
+      lineHeight: 1.57,
+      letterSpacing: 0.1,
+    },
+    body1: {
+      fontFamily: Platform.select({
+        ios: 'Nunito Sans',
+        android: 'Nunito Sans',
+        default: 'Nunito Sans, sans-serif',
+      }),
+      fontSize: 16, // 1rem
+      fontWeight: '400' as const,
+      lineHeight: 1.5,
+      letterSpacing: 0.15,
+    },
+    body2: {
+      fontFamily: Platform.select({
+        ios: 'Nunito Sans',
+        android: 'Nunito Sans',
+        default: 'Nunito Sans, sans-serif',
+      }),
+      fontSize: 14, // 0.875rem
+      fontWeight: '400' as const,
+      lineHeight: 1.43,
+      letterSpacing: 0.17,
+    },
+    caption: {
+      fontFamily: Platform.select({
+        ios: 'Nunito Sans',
+        android: 'Nunito Sans',
+        default: 'Nunito Sans, sans-serif',
+      }),
+      fontSize: 12, // 0.75rem
+      fontWeight: '400' as const,
+      lineHeight: 1.66,
+      letterSpacing: 0.4,
+    },
+    overline: {
+      fontFamily: Platform.select({
+        ios: 'Nunito Sans',
+        android: 'Nunito Sans',
+        default: 'Nunito Sans, sans-serif',
+      }),
+      fontSize: 12, // 0.75rem
+      fontWeight: '500' as const,
+      lineHeight: 2.66,
+      letterSpacing: 1,
+      textTransform: 'uppercase' as const,
+    },
   },
 };
 

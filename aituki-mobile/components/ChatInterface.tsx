@@ -18,6 +18,8 @@ import {
   Alert,
   Pressable,
   Keyboard,
+  Modal,
+  Animated,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
@@ -30,26 +32,111 @@ interface ChatInterfaceProps {
   onError?: (error: string) => void;
   onMessagesChange?: (messageCount: number) => void;
   onMessagesUpdate?: (messages: ChatMessage[]) => void; // Callback to sync messages to parent
+  onLoadingChange?: (isLoading: boolean) => void; // Callback to sync loading state to parent
   bottomOffset?: number; // Offset from bottom (e.g., for navigation bar)
   initialMessages?: ChatMessage[]; // Allow parent to provide initial messages
   inputHeight?: number; // Custom height for the input box (default: 192)
   bottomPadding?: number; // Additional bottom padding to move icons up (default: 0)
+  initialLoading?: boolean; // Allow parent to provide initial loading state
 }
 
 export default function ChatInterface({
-  systemPrompt = "You are a helpful AI assistant that provides personalized health and wellness guidance. Be friendly, supportive, and concise.",
+  systemPrompt = "You are a helpful AI assistant that provides personalized health and wellness guidance. Be friendly, supportive, and concise. You are Tuki a digital twin here to help users understand their body and can give helpful tips on how to stay healthy and well. Physically, mentally, spiritually and emotionally.",
+
   placeholder = "Ask me anything",
   onError,
   onMessagesChange,
   onMessagesUpdate,
+  onLoadingChange,
   bottomOffset = 0,
   initialMessages = [],
   inputHeight = 192,
   bottomPadding = 0,
+  initialLoading = false,
 }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [inputText, setInputText] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(initialLoading);
+  const loadingStartTimeRef = useRef<number | null>(null);
+  const MIN_LOADING_TIME = 500; // Minimum 500ms to show loader
+  const dotAnimations = useRef([
+    new Animated.Value(0.4),
+    new Animated.Value(0.4),
+    new Animated.Value(0.4),
+  ]).current;
+  const loadingOpacity = useRef(new Animated.Value(0)).current;
+  const textPulseOpacity = useRef(new Animated.Value(0.6)).current;
+  
+  // Sync initialLoading prop changes (important for remounts)
+  useEffect(() => {
+    if (initialLoading !== isLoading) {
+      setIsLoading(initialLoading);
+    }
+  }, [initialLoading]);
+  
+  // Animate loading message bubble fade in/out and typing dots
+  useEffect(() => {
+    if (isLoading) {
+      loadingStartTimeRef.current = Date.now();
+      // Fade in animation
+      Animated.timing(loadingOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+      
+      // Start pulsing animation for text
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(textPulseOpacity, {
+            toValue: 1,
+            duration: 750,
+            useNativeDriver: true,
+          }),
+          Animated.timing(textPulseOpacity, {
+            toValue: 0.6,
+            duration: 750,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+      
+      // Animate dots
+      const animations = dotAnimations.map((anim, index) => {
+        return Animated.sequence([
+          Animated.delay(index * 200),
+          Animated.loop(
+            Animated.sequence([
+              Animated.timing(anim, {
+                toValue: 1,
+                duration: 400,
+                useNativeDriver: true,
+              }),
+              Animated.timing(anim, {
+                toValue: 0.4,
+                duration: 400,
+                useNativeDriver: true,
+              }),
+            ])
+          ),
+        ]);
+      });
+      Animated.parallel(animations).start();
+    } else {
+      loadingStartTimeRef.current = null;
+      // Fade out animation
+      Animated.timing(loadingOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+      // Stop pulsing and reset
+      textPulseOpacity.stopAnimation();
+      textPulseOpacity.setValue(0.6);
+      // Reset animations
+      dotAnimations.forEach(anim => anim.setValue(0.4));
+    }
+  }, [isLoading, loadingOpacity, textPulseOpacity]);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const textInputRef = useRef<TextInput>(null);
@@ -89,6 +176,16 @@ export default function ChatInterface({
     }
   }, [messages]);
 
+  // Scroll to bottom when loading starts
+  useEffect(() => {
+    if (isLoading) {
+      console.log('isLoading changed to true, scrolling to bottom');
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 150);
+    }
+  }, [isLoading]);
+
   // Handle keyboard show/hide events
   useEffect(() => {
     const showSubscription = Keyboard.addListener(
@@ -115,14 +212,10 @@ export default function ChatInterface({
   }, []);
 
   const handleSend = async () => {
-    console.log('handleSend called', { inputText, inputTextLength: inputText.length, isLoading });
     const trimmedText = inputText.trim();
     if (!trimmedText || isLoading) {
-      console.log('handleSend: Early return - no text or loading', { trimmedText, isLoading });
       return;
     }
-
-    console.log('handleSend: Proceeding with send');
 
     if (!isOpenAIConfigured()) {
       const errorMsg = 'OpenAI API key is not configured. Please add your API key to app.json.';
@@ -139,16 +232,45 @@ export default function ChatInterface({
     // Add user message to chat immediately (optimistic update)
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
+    
     const savedInputText = trimmedText; // Save text before clearing
     setInputText('');
+    
+    // Set loading state FIRST and notify parent BEFORE messages update (critical for remount)
+    // CRITICAL: Set parent loading state FIRST, before messages update triggers remount
+    onLoadingChange?.(true);
     setIsLoading(true);
+    
+    // Small delay to ensure parent state is set before remount
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
+    // Now notify parent about messages (this will trigger remount if hasMessages changes)
+    onMessagesUpdate?.(newMessages);
+    onMessagesChange?.(newMessages.length);
+    
+    // Force a re-render and scroll to show loading message
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+        console.log('handleSend: Scrolled to end after setting loading');
+      }, 200);
+    });
 
     try {
       console.log('handleSend: Calling OpenAI API');
+      const startTime = Date.now();
       const assistantResponse = await sendChatMessage(newMessages, systemPrompt);
+      const elapsedTime = Date.now() - startTime;
       
       if (!assistantResponse) {
         throw new Error('No response from AI');
+      }
+      
+      // Ensure minimum loading time for visibility
+      const remainingTime = MIN_LOADING_TIME - elapsedTime;
+      if (remainingTime > 0) {
+        console.log(`handleSend: Waiting ${remainingTime}ms to ensure loader is visible`);
+        await new Promise(resolve => setTimeout(resolve, remainingTime));
       }
       
       const assistantMessage: ChatMessage = {
@@ -160,13 +282,20 @@ export default function ChatInterface({
       setMessages(finalMessages);
       console.log('handleSend: Success', { messageCount: finalMessages.length, messages: finalMessages.map(m => ({ role: m.role, contentLength: m.content.length })) });
       
-      // Notify parent component of message updates
+      // Notify parent component of message updates (already notified above, but update with final messages)
       onMessagesUpdate?.(finalMessages);
       onMessagesChange?.(finalMessages.length);
     } catch (error) {
       console.error('handleSend: Error', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to get AI response';
       console.log('handleSend: Showing error alert', errorMessage);
+      
+      // Ensure minimum loading time even on error
+      const elapsedTime = loadingStartTimeRef.current ? Date.now() - loadingStartTimeRef.current : 0;
+      const remainingTime = MIN_LOADING_TIME - elapsedTime;
+      if (remainingTime > 0) {
+        await new Promise(resolve => setTimeout(resolve, remainingTime));
+      }
       
       // Show error message to user
       Alert.alert('Error', errorMessage, [
@@ -188,6 +317,7 @@ export default function ChatInterface({
       setInputText(savedInputText);
     } finally {
       setIsLoading(false);
+      onLoadingChange?.(false); // Notify parent that loading is complete
     }
   };
 
@@ -267,8 +397,8 @@ export default function ChatInterface({
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? bottomOffset : 0}
       enabled={Platform.OS === 'ios'}>
-      {/* Messages Container */}
-      {(messages.length > 0 || isLoading) && (
+      {/* Messages Container - Only show when there are messages or loading */}
+      {(messages.length > 0 || isLoading || initialLoading) ? (
         <ScrollView
           ref={scrollViewRef}
           style={styles.messagesContainer}
@@ -278,50 +408,69 @@ export default function ChatInterface({
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
-          {messages.map((message, index) => (
+        {messages.map((message, index) => (
+          <View
+            key={index}
+            style={[
+              styles.messageContainer,
+              message.role === 'user' ? styles.userMessage : styles.assistantMessage,
+            ]}>
             <View
-              key={index}
               style={[
-                styles.messageContainer,
-                message.role === 'user' ? styles.userMessage : styles.assistantMessage,
+                styles.messageBubble,
+                message.role === 'user' ? styles.userBubble : styles.assistantBubble,
               ]}>
-              <View
+              <Text
                 style={[
-                  styles.messageBubble,
-                  message.role === 'user' ? styles.userBubble : styles.assistantBubble,
+                  styles.messageText,
+                  message.role === 'user' ? styles.userText : styles.assistantText,
                 ]}>
-                <Text
-                  style={[
-                    styles.messageText,
-                    message.role === 'user' ? styles.userText : styles.assistantText,
-                  ]}>
-                  {message.content}
-                </Text>
-              </View>
+                {message.content}
+              </Text>
             </View>
+          </View>
           ))}
-          {isLoading && (
-            <View style={[styles.messageContainer, styles.assistantMessage]}>
+          {/* Loading indicator as a message bubble - appears after user message */}
+          {(isLoading || initialLoading) && (
+            <Animated.View 
+              style={[
+                styles.messageContainer, 
+                styles.assistantMessage,
+                { opacity: loadingOpacity }
+              ]} 
+              key="loading-indicator">
               <View style={[styles.messageBubble, styles.assistantBubble]}>
-                <ActivityIndicator size="small" color={Colors.light.textSecondary} />
+                <Animated.Text style={[styles.typingText, { opacity: textPulseOpacity }]}>
+                  thinking about it...
+                </Animated.Text>
               </View>
-            </View>
+            </Animated.View>
           )}
         </ScrollView>
+      ) : (
+        // Empty view when no messages - takes no space
+        <View style={styles.emptyMessagesContainer} />
       )}
 
       {/* Input Container - Matching Figma Design */}
       <View style={[
         styles.chatInputContainer, 
         { 
+          // Position absolutely only when bottomOffset is provided (has messages)
+          // Otherwise, it's in normal flow (initial state)
+          position: bottomOffset > 0 ? 'absolute' : 'relative',
+          bottom: bottomOffset > 0 ? 0 : undefined,
+          left: bottomOffset > 0 ? 0 : undefined,
+          right: bottomOffset > 0 ? 0 : undefined,
+          // Extend to bottom, nav overlays on top - only account for keyboard on Android
           paddingBottom: Platform.OS === 'android' 
-            ? bottomOffset + bottomPadding + keyboardHeight 
-            : bottomOffset + bottomPadding 
+            ? keyboardHeight // Only account for keyboard, nav overlays on top
+            : 0 // No padding needed, extends to bottom
         }
       ]}>
-        {/* Make entire chat input wrapper a hotspot to activate keyboard */}
+        {/* Make entire chat input wrapper a hotspot to activate keyboard - extends to bottom */}
         <Pressable 
-          style={[styles.chatInputWrapper, { height: inputHeight }]}
+          style={styles.chatInputWrapper}
           onPress={() => {
             // Focus the TextInput when anywhere in the wrapper is pressed (except icon buttons)
             textInputRef.current?.focus();
@@ -400,14 +549,8 @@ export default function ChatInterface({
                 style={[styles.sendButton, (!inputText.trim() || isLoading) && styles.sendButtonDisabled]}
                 onPress={(e) => {
                   e.stopPropagation();
-                  const currentText = textInputRef.current?.props?.value || textInputRef.current?.value || inputText || '';
-                  if (currentText.trim() && !isLoading) {
-                    if (!inputText.trim() && currentText.trim()) {
-                      setInputText(currentText);
-                      setTimeout(() => handleSend(), 100);
-                    } else {
-                      handleSend();
-                    }
+                  if (inputText.trim() && !isLoading) {
+                    handleSend();
                   }
                 }}
                 disabled={!inputText.trim() || isLoading}
@@ -441,9 +584,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.light.background,
+    marginTop: 0, // No top margin when in normal flow
+    paddingTop: 0, // No top padding when in normal flow
   },
   messagesContainer: {
-    flex: 1, // Take available space
+    flex: 1, // Take available space when messages exist
+    minHeight: 1, // Ensure it takes space even when empty
+  },
+  emptyMessagesContainer: {
+    height: 0, // Take no space when empty
+    flex: 0, // Don't expand
   },
   messagesContent: {
     padding: Spacing.md,
@@ -452,7 +602,7 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     flexDirection: 'row',
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   userMessage: {
     justifyContent: 'flex-end',
@@ -467,11 +617,11 @@ const styles = StyleSheet.create({
   },
   userBubble: {
     backgroundColor: Colors.light.text,
-    borderBottomRightRadius: BorderRadius.xs,
+    borderBottomRightRadius: BorderRadius.sm,
   },
   assistantBubble: {
     backgroundColor: '#f5f5f5',
-    borderBottomLeftRadius: BorderRadius.xs,
+    borderBottomLeftRadius: BorderRadius.sm,
   },
   messageText: {
     fontFamily: Typography.fontFamily,
@@ -484,11 +634,62 @@ const styles = StyleSheet.create({
   assistantText: {
     color: Colors.light.text,
   },
+  thinkingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    minHeight: 20, // Ensure minimum height for visibility
+    paddingVertical: 2, // Add some vertical padding
+  },
+  thinkingSpinner: {
+    // No margin needed, gap handles spacing
+  },
+  thinkingText: {
+    fontFamily: Typography.fontFamily,
+    fontSize: Typography.fontSize.base,
+    color: Colors.light.text, // Use primary text color instead of secondary for better visibility
+    fontStyle: 'italic',
+    flex: 1, // Take available space
+    lineHeight: Typography.fontSize.base * 1.4,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  loadingContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    backgroundColor: Colors.light.background,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  loadingText: {
+    fontFamily: Typography.fontFamily,
+    fontSize: Typography.fontSize.base,
+    color: Colors.light.text,
+    fontStyle: 'italic',
+  },
   chatInputContainer: {
     paddingHorizontal: 0, // Full width - no horizontal padding
+    paddingTop: Spacing.lg, // 24px padding above text input
     paddingBottom: 0,
     backgroundColor: 'transparent',
-    position: 'relative',
+    // Position will be set dynamically based on bottomOffset
+    position: 'relative', // Default to relative for normal flow
     width: '100%', // Ensure full width
   },
   chatInputWrapper: {
@@ -496,14 +697,16 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg, // 16px
     paddingHorizontal: 12, // 12px from Figma
     paddingTop: 8, // 8px top padding from Figma (pt-[8px])
-    paddingBottom: Spacing.md, // 16px bottom padding (reduced from 32px to match Figma visual)
-    height: undefined, // Will be set dynamically via inline style
+    paddingBottom: 0, // No bottom padding - extends to bottom of container
     justifyContent: 'space-between', // Align content to top and bottom
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 4, // For Android shadow
+    // Extend to bottom of container
+    flex: 1, // Take all available vertical space
+    minHeight: 192, // Minimum height for initial state
   },
   textInputContainer: {
     flex: 1, // Take up available space above icons
@@ -524,7 +727,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 'auto', // Push icons to bottom
+    marginTop: Spacing.lg, // 24px gap between text and icons from Figma (gap-[var(--5,24px)])
   },
   leftIcons: {
     flexDirection: 'row',
@@ -537,11 +740,11 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   iconButton: {
-    padding: Spacing.xs,
+    padding: Spacing.sm,
     opacity: 0.6, // Matching Figma opacity
   },
   voiceButton: {
-    padding: Spacing.xs,
+    padding: Spacing.sm,
     opacity: 0.5, // Matching Figma opacity
   },
   sendButton: {
@@ -560,8 +763,59 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: Spacing.md + 8,
     right: Spacing.lg + 8,
-    padding: Spacing.xs,
+    padding: Spacing.sm,
     backgroundColor: Colors.light.background,
     borderRadius: BorderRadius.sm,
+  },
+  loadingTextContainer: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    width: '100%',
+    minHeight: 30,
+    backgroundColor: Colors.light.background,
+    marginBottom: Spacing.sm,
+  },
+  typingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
+  },
+  typingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.light.textSecondary,
+  },
+  typingText: {
+    fontFamily: Typography.fontFamily,
+    fontSize: Typography.fontSize.base,
+    color: Colors.light.text,
+    fontStyle: 'italic',
+  },
+  simpleLoadingIndicator: {
+    position: 'absolute',
+    top: 100,
+    left: Spacing.lg,
+    right: Spacing.lg,
+    zIndex: 9999,
+    elevation: 9999,
+    backgroundColor: Colors.light.background,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  simpleLoadingText: {
+    fontFamily: Typography.fontFamily,
+    fontSize: Typography.fontSize.base,
+    color: Colors.light.text,
+    fontStyle: 'italic',
+    textAlign: 'left',
   },
 });
