@@ -4,6 +4,7 @@ import { supabase } from '@/services/supabase';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
+import { syncOAuthUserToProfile, isOAuthUser } from '@/services/oauthProfileSync';
 
 // Complete OAuth session when browser closes
 WebBrowser.maybeCompleteAuthSession();
@@ -29,10 +30,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
-      setUser(session?.user ?? null);
+      const initialUser = session?.user ?? null;
+      setUser(initialUser);
       setLoading(false);
+      
+      // Sync OAuth data if user is logged in via OAuth
+      if (session && initialUser && isOAuthUser(initialUser)) {
+        // Sync in background (don't block navigation)
+        syncOAuthUserToProfile(initialUser).catch((error) => {
+          console.error('⚠️ Failed to sync OAuth profile on initial load (non-blocking):', error);
+        });
+      }
       
       // Navigate based on initial session
       if (session) {
@@ -45,12 +55,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
-      setUser(session?.user ?? null);
+      const newUser = session?.user ?? null;
+      setUser(newUser);
       
-      if (session) {
-        // User is logged in, navigate to main app
+      if (session && newUser) {
+        // User is logged in
+        // Auto-sync OAuth provider data to profile (if OAuth user)
+        if (isOAuthUser(newUser)) {
+          // Sync in background (don't block navigation)
+          syncOAuthUserToProfile(newUser).catch((error) => {
+            console.error('⚠️ Failed to sync OAuth profile (non-blocking):', error);
+          });
+        }
+        
+        // Navigate to main app
         router.replace('/(tabs)');
       } else {
         // User is logged out, navigate to auth
