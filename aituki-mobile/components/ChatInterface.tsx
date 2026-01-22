@@ -24,7 +24,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
 import IconLibrary from '@/components/IconLibrary';
-import { sendChatMessage, ChatMessage, isOpenAIConfigured } from '@/services/openai';
+import { sendChatMessage, ChatMessage, isOpenAIConfigured, clearHealthContextCache } from '@/services/openai';
 
 interface ChatInterfaceProps {
   systemPrompt?: string;
@@ -259,7 +259,8 @@ export default function ChatInterface({
     try {
       console.log('handleSend: Calling OpenAI API');
       const startTime = Date.now();
-      const assistantResponse = await sendChatMessage(newMessages, systemPrompt);
+      // Include health context by default for personalized responses
+      const assistantResponse = await sendChatMessage(newMessages, systemPrompt, true);
       const elapsedTime = Date.now() - startTime;
       
       if (!assistantResponse) {

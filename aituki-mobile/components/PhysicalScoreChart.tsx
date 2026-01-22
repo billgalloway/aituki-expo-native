@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   title: {
-    fontFamily: 'Poppins',
+    fontFamily: Typography.fontFamily,
     fontSize: 16,
     fontWeight: '500',
     color: Colors.light.text,
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   value: {
-    fontFamily: 'Poppins',
+    fontFamily: Typography.fontFamily,
     fontSize: 32,
     fontWeight: '400',
     color: Colors.light.primary,
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   subtitle: {
-    fontFamily: 'Poppins',
+    fontFamily: Typography.fontFamily,
     fontSize: 16,
     fontWeight: '400',
     color: Colors.light.text,

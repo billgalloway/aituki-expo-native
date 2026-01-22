@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   value: {
-    fontFamily: 'Poppins',
+    fontFamily: Typography.fontFamily,
     fontSize: 32,
     fontWeight: '400',
     color: '#165baa',
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   subtitle: {
-    fontFamily: 'Poppins',
+    fontFamily: Typography.fontFamily,
     fontSize: 16,
     fontWeight: '400',
     color: Colors.light.text,
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     paddingRight: Spacing.sm,
   },
   yAxisLabel: {
-    fontFamily: 'Inter',
+    fontFamily: Typography.fontFamily,
     fontSize: 12,
     fontWeight: '400',
     color: Colors.light.text,
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   xAxisLabelText: {
-    fontFamily: 'Inter',
+    fontFamily: Typography.fontFamily,
     fontSize: 10,
     fontWeight: '400',
     color: Colors.light.text,
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   legendText: {
-    fontFamily: 'Poppins',
+    fontFamily: Typography.fontFamily,
     fontSize: 12,
     fontWeight: '500',
     color: Colors.light.text,

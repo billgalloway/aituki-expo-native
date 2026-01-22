@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import PhysicalScoreChart from '@/components/PhysicalScoreChart';
@@ -14,11 +14,32 @@ import StepsChart from '@/components/StepsChart';
 import HeartRateChart from '@/components/HeartRateChart';
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
 import IconLibrary from '@/components/IconLibrary';
+import { useAppleHealth } from '@/hooks/useAppleHealth';
+import { useChartData } from '@/hooks/useChartData';
 
 const tabs = ['Dashboard', 'Physical', 'Emotional', 'Mental', 'Energy'];
 
 export default function HealthScreen() {
   const [activeTab, setActiveTab] = useState(1); // Physical tab active by default
+  
+  // Apple Health integration
+  const {
+    isAvailable,
+    permissions,
+    permissionsLoading,
+    syncLoading,
+    syncToSupabase,
+    requestPermissions,
+    syncStatus,
+  } = useAppleHealth({ autoSync: false });
+
+  // Chart data from Supabase (pulls from health_data table)
+  const {
+    physicalScore,
+    stepsData,
+    heartRateData,
+    loading: chartsLoading,
+  } = useChartData({ autoRefresh: true });
 
   // Render content based on active tab
   const renderTabContent = () => {
@@ -64,9 +85,47 @@ export default function HealthScreen() {
         {/* Action Buttons - Show on all tabs except Dashboard */}
         {activeTab !== 0 && (
           <View style={styles.actionButtonsContainer}>
-            <TouchableOpacity style={styles.connectDeviceButton}>
-              <Text style={styles.connectDeviceText}>Connect a device</Text>
-            </TouchableOpacity>
+            {Platform.OS === 'ios' && isAvailable && (
+              <TouchableOpacity
+                style={styles.connectDeviceButton}
+                onPress={async () => {
+                  if (!permissions?.granted) {
+                    const status = await requestPermissions();
+                    if (status.granted) {
+                      // Auto-sync after granting permissions
+                      await syncToSupabase();
+                    } else {
+                      Alert.alert(
+                        'Permissions Required',
+                        'Please grant HealthKit permissions in Settings to sync your health data.'
+                      );
+                    }
+                  } else {
+                    // Manual sync
+                    const result = await syncToSupabase();
+                    if (result.success) {
+                      Alert.alert('Success', `Synced ${result.synced} health records`);
+                    } else {
+                      Alert.alert('Sync Error', `Failed to sync. ${result.errors} errors.`);
+                    }
+                  }
+                }}
+                disabled={syncLoading || permissionsLoading}
+              >
+                {syncLoading || permissionsLoading ? (
+                  <ActivityIndicator color={Colors.light.text} size="small" />
+                ) : (
+                  <Text style={styles.connectDeviceText}>
+                    {permissions?.granted ? 'Sync Health Data' : 'Connect Apple Health'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
+            {(!isAvailable || Platform.OS !== 'ios') && (
+              <TouchableOpacity style={styles.connectDeviceButton}>
+                <Text style={styles.connectDeviceText}>Connect a device</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={styles.addDataButton}>
               <Text style={styles.addDataText}>Add data manually</Text>
             </TouchableOpacity>
@@ -123,26 +182,42 @@ function DashboardContent() {
 
 // Physical Tab Content
 function PhysicalContent() {
+  const {
+    physicalScore,
+    stepsData,
+    heartRateData,
+    loading: chartsLoading,
+  } = useChartData({ autoRefresh: true });
+
+  if (chartsLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.light.primary} />
+        <Text style={styles.loadingText}>Loading chart data...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.tabContent}>
       <View style={styles.chartsContainer}>
         <PhysicalScoreChart
-          score={179}
+          score={physicalScore?.score || 179}
           subtitle="Last 7 days"
-          percentage={56}
-          label="Good week"
+          percentage={physicalScore?.percentage || 56}
+          label={physicalScore?.label || "Good week"}
         />
         <StepsChart
-          value="56,348"
+          value={stepsData?.total.toLocaleString() || "0"}
           subtitle="15% above average"
-          walkingData={[45, 35, 50, 55]}
-          runningData={[20, 30, 25, 20]}
+          walkingData={stepsData?.walkingData || [0, 0, 0, 0]}
+          runningData={stepsData?.runningData || [0, 0, 0, 0]}
         />
         <HeartRateChart
-          value="102"
+          value={heartRateData?.average.toString() || "0"}
           subtitle="15% above average"
           timeLabels={['08:00', '10:00', '12:00', '14:00', '16:00']}
-          heartRateData={[85, 95, 102, 98, 105]}
+          heartRateData={heartRateData?.heartRateData || [0, 0, 0, 0, 0]}
         />
       </View>
     </View>
@@ -296,7 +371,7 @@ const styles = StyleSheet.create({
     gap: Spacing.lg,
   },
   dashboardTitle: {
-    fontFamily: 'Poppins',
+    fontFamily: Typography.fontFamily,
     fontSize: 20,
     fontWeight: '500',
     color: Colors.light.text,
@@ -324,7 +399,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   dashboardCardValue: {
-    fontFamily: 'Poppins',
+    fontFamily: Typography.fontFamily,
     fontSize: 32,
     fontWeight: '400',
     color: Colors.light.primary,
@@ -335,6 +410,18 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily,
     fontSize: Typography.fontSize.xs,
     fontWeight: '400',
+    color: Colors.light.textSecondary,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: Spacing.xl * 2,
+  },
+  loadingText: {
+    marginTop: Spacing.md,
+    fontFamily: Typography.fontFamily,
+    fontSize: Typography.fontSize.sm,
     color: Colors.light.textSecondary,
   },
 });

@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { generateHealthContext, formatHealthContextForAI, HealthContext } from './aiHealthContext';
 
 // Get OpenAI API key from environment
 const getEnvVar = (key: string): string => {
@@ -53,14 +54,63 @@ export interface ChatCompletionResponse {
 }
 
 /**
+ * Get health context for the current user
+ * Cached for performance (context is regenerated if older than 5 minutes)
+ */
+let cachedHealthContext: { context: HealthContext | null; timestamp: number } | null = null;
+const HEALTH_CONTEXT_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+export async function getHealthContext(userId?: string): Promise<string | null> {
+  try {
+    // Check cache first
+    const now = Date.now();
+    if (cachedHealthContext && (now - cachedHealthContext.timestamp) < HEALTH_CONTEXT_CACHE_TTL) {
+      if (cachedHealthContext.context) {
+        return formatHealthContextForAI(cachedHealthContext.context);
+      }
+      return null;
+    }
+
+    // Generate new context
+    const context = await generateHealthContext(userId);
+    
+    // Update cache
+    cachedHealthContext = {
+      context,
+      timestamp: now,
+    };
+
+    if (context) {
+      return formatHealthContextForAI(context);
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error getting health context:', error);
+    return null;
+  }
+}
+
+/**
+ * Clear health context cache (useful after syncing new data)
+ */
+export function clearHealthContextCache(): void {
+  cachedHealthContext = null;
+}
+
+/**
  * Send a message to OpenAI and get a response
  * @param messages Array of chat messages (conversation history)
  * @param systemPrompt Optional system prompt to set AI behavior
+ * @param includeHealthContext Whether to include user's health data in context (default: true)
+ * @param userId Optional user ID for health context (uses current session if not provided)
  * @returns The assistant's response message
  */
 export async function sendChatMessage(
   messages: ChatMessage[],
-  systemPrompt?: string
+  systemPrompt?: string,
+  includeHealthContext: boolean = true,
+  userId?: string
 ): Promise<string> {
   console.log('sendChatMessage: Starting', { 
     hasApiKey: !!OPENAI_API_KEY, 
@@ -75,10 +125,35 @@ export async function sendChatMessage(
     );
   }
 
-  // Prepare messages with optional system prompt
+  // Get health context if requested
+  let healthContextString: string | null = null;
+  if (includeHealthContext) {
+    try {
+      healthContextString = await getHealthContext(userId);
+    } catch (error) {
+      console.warn('Failed to get health context, continuing without it:', error);
+    }
+  }
+
+  // Build enhanced system prompt with health context
+  let enhancedSystemPrompt = systemPrompt || '';
+  
+  if (healthContextString) {
+    const healthContextSection = `\n\nYou have access to the user's health data. Use this information to provide personalized, empathetic, and relevant advice. Consider all four pillars of wellbeing: Physical, Emotional, Mental, and Energy.\n\n${healthContextString}\n\nWhen responding, be empathetic and supportive. Reference specific health metrics when relevant, but don't overwhelm the user with numbers. Focus on actionable insights and encouragement.`;
+    
+    if (enhancedSystemPrompt) {
+      enhancedSystemPrompt += healthContextSection;
+    } else {
+      enhancedSystemPrompt = `You are AiTuki, a compassionate AI health and wellbeing assistant. Your role is to help users improve their health across four pillars: Physical, Emotional, Mental, and Energy.${healthContextSection}`;
+    }
+  } else if (!enhancedSystemPrompt) {
+    enhancedSystemPrompt = 'You are AiTuki, a compassionate AI health and wellbeing assistant. Your role is to help users improve their health across four pillars: Physical, Emotional, Mental, and Energy.';
+  }
+
+  // Prepare messages with enhanced system prompt
   const apiMessages: ChatMessage[] = [];
-  if (systemPrompt) {
-    apiMessages.push({ role: 'system', content: systemPrompt });
+  if (enhancedSystemPrompt) {
+    apiMessages.push({ role: 'system', content: enhancedSystemPrompt });
   }
   apiMessages.push(...messages);
 

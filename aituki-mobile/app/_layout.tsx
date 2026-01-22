@@ -35,6 +35,15 @@ export default function RootLayout() {
           <Stack>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="account-settings" options={{ headerShown: false }} />
+            <Stack.Screen name="personal-details" options={{ headerShown: false }} />
+            <Stack.Screen name="password-security" options={{ headerShown: false }} />
+            <Stack.Screen name="data-privacy" options={{ headerShown: false }} />
+            <Stack.Screen name="alerts-notifications" options={{ headerShown: false }} />
+            <Stack.Screen name="update-name" options={{ headerShown: false }} />
+            <Stack.Screen name="update-email" options={{ headerShown: false }} />
+            <Stack.Screen name="update-mobile" options={{ headerShown: false }} />
+            <Stack.Screen name="update-address" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </Stack>
           <ExpoStatusBar style={isDark ? 'light' : 'dark'} />

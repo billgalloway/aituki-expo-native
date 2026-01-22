@@ -63,7 +63,7 @@ export async function fetchPhysicalScoreData(
       .lte('date', endDate.toISOString())
       .order('date', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error fetching physical score data:', error);
@@ -89,6 +89,7 @@ export async function fetchPhysicalScoreData(
 
 /**
  * Fetch Steps data from Supabase
+ * Tries health_data table first (Apple Health), falls back to steps_data table
  * @param userId - User ID (optional, uses current session if not provided)
  * @param quarters - Array of quarters to fetch (default: ['q1', 'q2', 'q3', 'q4'])
  */
@@ -114,7 +115,57 @@ export async function fetchStepsData(
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(endOfWeek.getDate() + 7);
 
-    // Query Supabase for steps data
+    // First, try to get data from unified health_data table (Apple Health)
+    const { data: healthData, error: healthDataError } = await supabase
+      .from('health_data')
+      .select('*')
+      .eq('user_id', targetUserId)
+      .eq('data_type', 'stepCount')
+      .eq('source', 'apple_health')
+      .gte('start_date', startOfWeek.toISOString())
+      .lte('start_date', endOfWeek.toISOString())
+      .order('start_date', { ascending: true });
+
+    // If we have health_data, use it
+    if (!healthDataError && healthData && healthData.length > 0) {
+      // Group steps by day and calculate quarters
+      const dailySteps: Record<string, number> = {};
+      healthData.forEach((record: any) => {
+        const date = new Date(record.start_date).toISOString().split('T')[0];
+        dailySteps[date] = (dailySteps[date] || 0) + parseFloat(record.value);
+      });
+
+      // Calculate quarters (divide week into 4 quarters)
+      const daysInWeek = 7;
+      const daysPerQuarter = daysInWeek / 4;
+      const walkingData: number[] = [];
+      const runningData: number[] = [];
+      let total = 0;
+
+      for (let q = 0; q < 4; q++) {
+        let quarterSteps = 0;
+        const quarterStart = q * daysPerQuarter;
+        const quarterEnd = (q + 1) * daysPerQuarter;
+
+        for (let d = 0; d < daysInWeek; d++) {
+          if (d >= quarterStart && d < quarterEnd) {
+            const date = new Date(startOfWeek);
+            date.setDate(date.getDate() + d);
+            const dateStr = date.toISOString().split('T')[0];
+            quarterSteps += dailySteps[dateStr] || 0;
+          }
+        }
+
+        // For now, assume all steps are walking (can be enhanced with workout data)
+        walkingData.push(Math.round(quarterSteps * 0.8)); // 80% walking
+        runningData.push(Math.round(quarterSteps * 0.2)); // 20% running
+        total += quarterSteps;
+      }
+
+      return { walkingData, runningData, total };
+    }
+
+    // Fallback to steps_data table (legacy)
     const { data, error } = await supabase
       .from('steps_data')
       .select('*')
@@ -170,6 +221,7 @@ export async function fetchStepsData(
 
 /**
  * Fetch Heart Rate data from Supabase
+ * Tries health_data table first (Apple Health), falls back to heart_rate_data table
  * @param userId - User ID (optional, uses current session if not provided)
  * @param date - Specific date to fetch (default: today)
  * @param timeLabels - Array of time labels for x-axis
@@ -196,7 +248,60 @@ export async function fetchHeartRateData(
     const endOfDay = new Date(targetDate);
     endOfDay.setHours(23, 59, 59, 999);
 
-    // Query Supabase for heart rate data
+    // First, try to get data from unified health_data table (Apple Health)
+    const { data: healthData, error: healthDataError } = await supabase
+      .from('health_data')
+      .select('*')
+      .eq('user_id', targetUserId)
+      .eq('data_type', 'heartRate')
+      .eq('source', 'apple_health')
+      .gte('start_date', startOfDay.toISOString())
+      .lte('start_date', endOfDay.toISOString())
+      .order('start_date', { ascending: true });
+
+    // If we have health_data, use it
+    if (!healthDataError && healthData && healthData.length > 0) {
+      // Group heart rate by time slots
+      const heartRateByTime: Record<string, number[]> = {};
+      healthData.forEach((record: any) => {
+        const recordDate = new Date(record.start_date);
+        const hour = recordDate.getHours();
+        const minute = recordDate.getMinutes();
+        const timeSlot = `${String(hour).padStart(2, '0')}:${String(Math.floor(minute / 15) * 15).padStart(2, '0')}`;
+        
+        if (!heartRateByTime[timeSlot]) {
+          heartRateByTime[timeSlot] = [];
+        }
+        heartRateByTime[timeSlot].push(parseFloat(record.value));
+      });
+
+      // Map to time labels (average values for each time slot)
+      const heartRateData = timeLabels.map((timeLabel) => {
+        // Find closest time slot
+        const matchingSlots = Object.keys(heartRateByTime).filter(slot => {
+          const [slotHour, slotMin] = slot.split(':').map(Number);
+          const [labelHour, labelMin] = timeLabel.split(':').map(Number);
+          return Math.abs(slotHour - labelHour) <= 1; // Within 1 hour
+        });
+
+        if (matchingSlots.length > 0) {
+          const allValues = matchingSlots.flatMap(slot => heartRateByTime[slot]);
+          return allValues.reduce((a, b) => a + b, 0) / allValues.length;
+        }
+        return 0;
+      });
+
+      const average = heartRateData.length > 0
+        ? heartRateData.reduce((sum, val) => sum + val, 0) / heartRateData.length
+        : 0;
+
+      return {
+        heartRateData: heartRateData.map(v => Math.round(v)),
+        average: Math.round(average),
+      };
+    }
+
+    // Fallback to heart_rate_data table (legacy)
     const { data, error } = await supabase
       .from('heart_rate_data')
       .select('*')

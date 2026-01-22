@@ -11,14 +11,16 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.aituki.mobile",
-      "buildNumber": "15",
+      "buildNumber": "17",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSHealthShareUsageDescription": "AiTuki needs access to your health data to provide personalized insights and track your wellbeing across physical, emotional, mental, and energy pillars.",
+        "NSHealthUpdateUsageDescription": "AiTuki needs to write health data to help you track your progress and goals."
       }
     },
     "android": {
       "package": "com.aituki.mobile",
-      "versionCode": 15,
+      "versionCode": 16,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -51,6 +53,13 @@
         {
           "photosPermission": "The app accesses your photos to let you share them.",
           "cameraPermission": "The app accesses your camera to let you take photos."
+        }
+      ],
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "healthSharePermission": "AiTuki needs access to your health data to provide personalized insights and track your wellbeing across physical, emotional, mental, and energy pillars.",
+          "healthUpdatePermission": "AiTuki needs to write health data to help you track your progress and goals."
         }
       ]
     ],

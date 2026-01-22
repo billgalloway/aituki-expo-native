@@ -3,7 +3,7 @@
  * Matches Figma design with menu drawer and alerts
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,9 @@ import {
   TouchableOpacity,
   ScrollView,
   Modal,
+  Animated,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar, Badge, Divider, Chip } from 'react-native-paper';
 // import { LinearGradient } from 'expo-linear-gradient'; // Using border-based solution instead
@@ -30,20 +32,78 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onMenuPress, onAlertsPress, hidePromptBar = false, onPromptPress }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false); // Controls Modal visibility
   const [alertsOpen, setAlertsOpen] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({
+    'account-settings': true, // Account settings expanded by default
+    'help-centre': false,
+    'interface': false,
+  });
   const router = useRouter();
   const pathname = usePathname();
   const colorScheme = useColorScheme();
   const themeColors = Colors.light; // Dark mode is currently disabled
   const { user, signOut } = useAuth();
   
+  // Animation for drawer slide from left
+  const drawerTranslateX = useRef(new Animated.Value(-286)).current; // Start off-screen to the left
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
+  
   // Hide prompt bar on twin screen
   const shouldHidePromptBar = hidePromptBar || pathname?.includes('/twin');
-
-  const handleMenuPress = () => {
+  
+  // Handle menu open - show modal first, then animate
+  const handleMenuOpen = () => {
+    setMenuVisible(true);
     setMenuOpen(true);
     onMenuPress?.();
   };
+  
+  // Handle menu close - animate out first, then hide modal
+  const handleMenuClose = () => {
+    setMenuOpen(false);
+    // Animate out to left
+    Animated.parallel([
+      Animated.timing(drawerTranslateX, {
+        toValue: -286,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Hide modal after animation completes
+      setMenuVisible(false);
+    });
+  };
+  
+  // Animate drawer in when menuOpen becomes true
+  useEffect(() => {
+    if (menuOpen && menuVisible) {
+      // Slide in from left
+      Animated.parallel([
+        Animated.timing(drawerTranslateX, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [menuOpen, menuVisible]);
+  
+  const toggleExpanded = (key: string) => {
+    setExpandedItems(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleMenuPress = handleMenuOpen;
 
   const handleAlertsPress = () => {
     setAlertsOpen(true);
@@ -183,11 +243,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onAlertsPress, hidePromptB
       backgroundColor: themeColors.primaryLight,
     },
     drawer: {
-      width: '80%',
-      maxWidth: 360,
+      width: 286, // Exact width from Figma
+      height: '100%',
       backgroundColor: themeColors.background,
-      borderTopRightRadius: BorderRadius.xl,
-      borderBottomRightRadius: BorderRadius.xl,
       ...Shadows.large,
     },
     drawerProfileName: {
@@ -320,84 +378,215 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onAlertsPress, hidePromptB
 
       {/* Menu Drawer Modal */}
       <Modal
-        visible={menuOpen}
+        visible={menuVisible}
         transparent={true}
-        animationType="slide"
-        onRequestClose={() => setMenuOpen(false)}
+        animationType="none"
+        onRequestClose={handleMenuClose}
       >
         <TouchableOpacity
           style={styles.drawerBackdrop}
           activeOpacity={1}
-          onPress={() => setMenuOpen(false)}
+          onPress={handleMenuClose}
         >
+          <Animated.View
+            style={[
+              styles.drawerBackdropAnimated,
+              {
+                opacity: backdropOpacity,
+              },
+            ]}
+          />
           <View style={styles.drawerContainer}>
-            <View style={dynamicStyles.drawer} onStartShouldSetResponder={() => true}>
-              {/* Drawer Header */}
-              <View style={styles.drawerHeader}>
-                <View style={styles.drawerProfile}>
-                  <Avatar.Icon
-                    size={44}
-                  icon={() => <IconLibrary iconName="user" size={24} color={themeColors.text} />}
-                  style={[dynamicStyles.avatar, { borderWidth: 2, borderColor: themeColors.primaryLight }]}
-                  />
-                  <View style={styles.drawerProfileInfo}>
-                    <Text style={dynamicStyles.drawerProfileName}>
-                      {user?.email?.split('@')[0] || 'User'}
-                    </Text>
-                    <Chip
-                      style={dynamicStyles.proChip}
-                      textStyle={dynamicStyles.proChipText}
-                      mode="flat"
-                    >
-                      Pro member
-                    </Chip>
+            <Animated.View
+              style={[
+                dynamicStyles.drawer,
+                {
+                  transform: [{ translateX: drawerTranslateX }],
+                },
+              ]}
+              onStartShouldSetResponder={() => true}
+            >
+              {/* Drawer Header - Logo and Close Button */}
+              <View style={styles.drawerHeaderNew}>
+                <View style={styles.drawerHeaderContent}>
+                  {/* Logo Container - exact dimensions from Figma */}
+                  <View style={styles.drawerLogoWrapper}>
+                    <Image 
+                      source={{ uri: 'https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/data/Colour=Colour,%20stacked=No.png' }}
+                      style={styles.drawerLogoImage}
+                      contentFit="contain"
+                      transition={200}
+                    />
                   </View>
-                </View>
-                <TouchableOpacity
-                  onPress={() => setMenuOpen(false)}
-                  style={styles.closeButton}
-                >
-                  <IconLibrary iconName="close" size={22} color={themeColors.text} />
-                </TouchableOpacity>
-              </View>
-              <Divider />
-              
-              {/* Navigation Items */}
-              <View style={styles.drawerNavSection}>
-                <Text style={dynamicStyles.drawerNavLabel}>Navigation</Text>
-                {navItems.map((item) => (
+                  
+                  {/* Close Button - IconButton pattern from Figma */}
                   <TouchableOpacity
-                    key={item.path}
-                    style={styles.drawerNavItem}
-                    onPress={() => {
-                      setMenuOpen(false);
-                      router.push(item.path as any);
-                    }}
+                    onPress={handleMenuClose}
+                    style={styles.drawerCloseIconButton}
+                    activeOpacity={0.7}
                   >
-                    <IconLibrary iconName={item.iconName} size={22} color={themeColors.text} />
-                    <Text style={dynamicStyles.drawerNavText}>{item.label}</Text>
-                    <IconLibrary iconName="chevron-right" size={20} color={themeColors.textSecondary} />
+                    <View style={styles.drawerCloseIconContainer}>
+                      <IconLibrary iconName="close" size={20} color={themeColors.text} />
+                    </View>
                   </TouchableOpacity>
-                ))}
+                </View>
               </View>
-              
-              {/* Logout Button */}
               <Divider />
-              <View style={styles.drawerNavSection}>
+              
+              {/* Menu List */}
+              <ScrollView style={styles.drawerMenuList} contentContainerStyle={styles.drawerMenuContent}>
+                {/* Account settings - Navigate to Account Settings screen */}
                 <TouchableOpacity
-                  style={styles.drawerNavItem}
+                  style={styles.drawerListItem}
+                  onPress={() => {
+                    handleMenuClose();
+                    router.push('/account-settings');
+                  }}
+                >
+                  <View style={styles.drawerListItemLeft}>
+                    <View style={styles.drawerListItemIcon}>
+                      <IconLibrary iconName="settings" size={24} color={themeColors.text} />
+                    </View>
+                  </View>
+                  <View style={styles.drawerListItemText}>
+                    <Text style={styles.drawerListItemMainText}>
+                      Account settings
+                    </Text>
+                  </View>
+                  <View style={styles.drawerListItemRight}>
+                    <IconLibrary 
+                      iconName="chevron-right" 
+                      size={20} 
+                      color={themeColors.textSecondary}
+                    />
+                  </View>
+                </TouchableOpacity>
+                
+                {/* Help centre - Expandable */}
+                <View style={styles.expandableItem}>
+                  <TouchableOpacity
+                    style={styles.drawerListItem}
+                    onPress={() => toggleExpanded('help-centre')}
+                  >
+                    <View style={styles.drawerListItemLeft}>
+                      <View style={styles.drawerListItemIcon}>
+                        <IconLibrary iconName="help" size={24} color={themeColors.text} />
+                      </View>
+                    </View>
+                    <View style={styles.drawerListItemText}>
+                      <Text style={styles.drawerListItemMainText}>Help centre</Text>
+                    </View>
+                    <View style={styles.drawerListItemRight}>
+                      <View style={{ transform: [{ rotate: expandedItems['help-centre'] ? '180deg' : '0deg' }] }}>
+                        <IconLibrary 
+                          iconName="expand-more" 
+                          size={24} 
+                          color={themeColors.text}
+                        />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+                
+                {/* Interface - Expandable */}
+                <View style={styles.expandableItem}>
+                  <TouchableOpacity
+                    style={styles.drawerListItem}
+                    onPress={() => toggleExpanded('interface')}
+                  >
+                    <View style={styles.drawerListItemLeft}>
+                      <View style={styles.drawerListItemIcon}>
+                        <IconLibrary iconName="phone" size={24} color={themeColors.text} />
+                      </View>
+                    </View>
+                    <View style={styles.drawerListItemText}>
+                      <Text style={styles.drawerListItemMainText}>Interface</Text>
+                    </View>
+                    <View style={styles.drawerListItemRight}>
+                      <View style={{ transform: [{ rotate: expandedItems['interface'] ? '180deg' : '0deg' }] }}>
+                        <IconLibrary 
+                          iconName="expand-more" 
+                          size={24} 
+                          color={themeColors.text}
+                        />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+                
+                {/* AI models - Regular item */}
+                <TouchableOpacity
+                  style={styles.drawerListItem}
+                  onPress={() => {
+                    handleMenuClose();
+                    // TODO: Navigate to AI models
+                  }}
+                >
+                  <View style={styles.drawerListItemLeft}>
+                    <View style={styles.drawerListItemIcon}>
+                      <IconLibrary iconName="brain" size={24} color={themeColors.text} />
+                    </View>
+                  </View>
+                  <View style={styles.drawerListItemText}>
+                    <Text style={styles.drawerListItemMainText}>AI models</Text>
+                  </View>
+                </TouchableOpacity>
+                
+                {/* Connections - Regular item */}
+                <TouchableOpacity
+                  style={styles.drawerListItem}
+                  onPress={() => {
+                    handleMenuClose();
+                    router.push('/data');
+                  }}
+                >
+                  <View style={styles.drawerListItemLeft}>
+                    <View style={styles.drawerListItemIcon}>
+                      <IconLibrary iconName="swap-horiz" size={24} color={themeColors.text} />
+                    </View>
+                  </View>
+                  <View style={styles.drawerListItemText}>
+                    <Text style={styles.drawerListItemMainText}>Connections</Text>
+                  </View>
+                </TouchableOpacity>
+                
+                {/* Terms and conditions - Regular item */}
+                <TouchableOpacity
+                  style={styles.drawerListItem}
+                  onPress={() => {
+                    handleMenuClose();
+                    // TODO: Navigate to terms
+                  }}
+                >
+                  <View style={styles.drawerListItemLeft}>
+                    <View style={styles.drawerListItemIcon}>
+                      <IconLibrary iconName="balance" size={24} color={themeColors.text} />
+                    </View>
+                  </View>
+                  <View style={styles.drawerListItemText}>
+                    <Text style={styles.drawerListItemMainText}>Terms and conditions</Text>
+                  </View>
+                </TouchableOpacity>
+                
+                {/* Logout - Regular item with red text */}
+                <TouchableOpacity
+                  style={styles.drawerListItem}
                   onPress={async () => {
-                    setMenuOpen(false);
+                    handleMenuClose();
                     await signOut();
                   }}
                 >
-                  <IconLibrary iconName="close" size={22} color={themeColors.error} />
-                  <Text style={[dynamicStyles.drawerNavText, { color: themeColors.error }]}>
-                    Sign Out
-                  </Text>
+                  <View style={styles.drawerListItemLeft}>
+                    <View style={styles.drawerListItemIcon}>
+                      <IconLibrary iconName="logout" size={24} color={themeColors.text} />
+                    </View>
+                  </View>
+                  <View style={styles.drawerListItemText}>
+                    <Text style={styles.drawerListItemMainTextLogout}>Logout</Text>
+                  </View>
                 </TouchableOpacity>
-              </View>
-            </View>
+              </ScrollView>
+            </Animated.View>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -496,6 +685,10 @@ const styles = StyleSheet.create({
   // Drawer styles
   drawerBackdrop: {
     flex: 1,
+    position: 'relative',
+  },
+  drawerBackdropAnimated: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   drawerContainer: {
@@ -515,6 +708,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  drawerHeaderNew: {
+    paddingTop: 64, // 64px padding at top
+    paddingBottom: Spacing.md, // 16px
+    paddingHorizontal: Spacing.md, // 16px (var(--4,16px))
+  },
+  drawerHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  drawerLogoWrapper: {
+    height: 40.529, // Exact height from Figma
+    width: 100, // Exact width from Figma
+    position: 'relative',
+  },
+  drawerLogoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  drawerCloseIconButton: {
+    padding: 8, // 8px padding as per Figma
+    borderRadius: 100, // 100px (circular)
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  drawerCloseIconContainer: {
+    opacity: 0.4, // 40% opacity as per Figma
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   drawerProfile: {
     flexDirection: 'row',
@@ -569,6 +795,78 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.medium,
     color: Colors.light.text,
+  },
+  // New drawer menu styles matching Figma
+  drawerMenuList: {
+    flex: 1,
+  },
+  drawerMenuContent: {
+    padding: Spacing.xs, // 8px
+  },
+  expandableItem: {
+    marginBottom: 0,
+  },
+  drawerListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md, // 16px
+    paddingVertical: Spacing.xs, // 8px
+    borderRadius: 4, // 4px border radius
+    minHeight: 48,
+  },
+  drawerListItemLeft: {
+    minWidth: 56, // 56px min-width for icon area
+    alignItems: 'flex-start',
+  },
+  drawerListItemIcon: {
+    opacity: 0.5, // 50% opacity
+  },
+  drawerListItemText: {
+    flex: 1,
+    paddingVertical: 4, // 4px py
+  },
+  drawerListItemMainText: {
+    fontFamily: Typography.fontFamily,
+    fontSize: 16, // body1: 1rem
+    fontWeight: Typography.fontWeight.regular, // 400
+    lineHeight: 24, // 1.5 line height
+    letterSpacing: 0.15,
+    color: Colors.light.text,
+  },
+  drawerListItemUnderlined: {
+    textDecorationLine: 'underline',
+  },
+  drawerListItemMainTextLogout: {
+    fontFamily: Typography.fontFamily,
+    fontSize: 16, // body1: 1rem
+    fontWeight: Typography.fontWeight.regular, // 400
+    lineHeight: 24, // 1.5 line height
+    letterSpacing: 0.15,
+    color: Colors.light.error, // Error/main color from Figma (#d32f2f)
+  },
+  drawerListItemRight: {
+    padding: 5, // 5px padding
+    borderRadius: 100, // 100px (circular)
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  drawerSubItem: {
+    paddingLeft: 56, // 56px left padding
+    paddingHorizontal: Spacing.md, // 16px horizontal
+    paddingVertical: 4, // 4px vertical
+    borderRadius: 4,
+  },
+  drawerSubItemActive: {
+    backgroundColor: 'rgba(31, 86, 97, 0.04)', // hover/active state
+  },
+  drawerSubItemText: {
+    fontFamily: Typography.fontFamily,
+    fontSize: 14, // 0.875rem
+    fontWeight: Typography.fontWeight.regular, // 400
+    lineHeight: 20, // 1.43 line height
+    letterSpacing: 0.17,
+    color: Colors.light.text,
+    paddingVertical: 4,
   },
   // Alerts drawer styles
   alertsContainer: {
