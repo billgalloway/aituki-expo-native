@@ -5,8 +5,9 @@
  * Note: Chart data will be pulled from Supabase in the future
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import PhysicalScoreChart from '@/components/PhysicalScoreChart';
@@ -20,6 +21,7 @@ import { useChartData } from '@/hooks/useChartData';
 const tabs = ['Dashboard', 'Physical', 'Emotional', 'Mental', 'Energy'];
 
 export default function HealthScreen() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState(1); // Physical tab active by default
   
   // Apple Health integration
@@ -31,7 +33,20 @@ export default function HealthScreen() {
     syncToSupabase,
     requestPermissions,
     syncStatus,
+    error: healthError,
   } = useAppleHealth({ autoSync: false });
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('=== HealthKit Status ===');
+    console.log('isAvailable:', isAvailable);
+    console.log('permissions:', permissions);
+    console.log('permissionsLoading:', permissionsLoading);
+    console.log('syncLoading:', syncLoading);
+    console.log('syncStatus:', syncStatus);
+    console.log('error:', healthError);
+    console.log('Platform.OS:', Platform.OS);
+  }, [isAvailable, permissions, permissionsLoading, syncLoading, syncStatus, healthError]);
 
   // Chart data from Supabase (pulls from health_data table)
   const {
@@ -40,6 +55,27 @@ export default function HealthScreen() {
     heartRateData,
     loading: chartsLoading,
   } = useChartData({ autoRefresh: true });
+
+  // Manual sync handler
+  const handleManualSync = async () => {
+    console.log('Starting manual sync...');
+    try {
+      const result = await syncToSupabase();
+      console.log('Sync result:', result);
+      
+      if (result.success) {
+        Alert.alert('Success', `Synced ${result.synced} health records`);
+      } else {
+        Alert.alert('Sync Error', `Failed to sync. ${result.errors} errors. Check console for details.`);
+      }
+    } catch (error) {
+      console.error('Error syncing:', error);
+      Alert.alert(
+        'Sync Error',
+        `Error during sync: ${error instanceof Error ? error.message : 'Unknown error'}. Check console for details.`
+      );
+    }
+  };
 
   // Render content based on active tab
   const renderTabContent = () => {
@@ -82,46 +118,73 @@ export default function HealthScreen() {
           ))}
         </View>
 
+        {/* Debug Info */}
+        <View style={{ padding: 10, backgroundColor: '#f0f0f0', margin: 10 }}>
+          <Text style={{ fontSize: 12 }}>
+            Debug: activeTab={activeTab}, Platform.OS={Platform.OS}, isAvailable={String(isAvailable)}
+          </Text>
+        </View>
+
         {/* Action Buttons - Show on all tabs except Dashboard */}
         {activeTab !== 0 && (
           <View style={styles.actionButtonsContainer}>
-            {Platform.OS === 'ios' && isAvailable && (
+            {/* Test Button - Always visible */}
+            <TouchableOpacity
+              style={[styles.connectDeviceButton, { backgroundColor: 'red', marginBottom: 10 }]}
+              onPress={() => {
+                console.log('🔴 TEST BUTTON PRESSED');
+                Alert.alert('Test', 'Test button works!');
+              }}
+            >
+              <Text style={styles.connectDeviceText}>TEST BUTTON</Text>
+            </TouchableOpacity>
+
+            {Platform.OS === 'ios' && (
               <TouchableOpacity
-                style={styles.connectDeviceButton}
-                onPress={async () => {
+                style={[
+                  styles.connectDeviceButton,
+                  (!isAvailable || syncLoading || permissionsLoading) && { opacity: 0.6 }
+                ]}
+                onPress={() => {
+                  console.log('🔵 ===== Apple Health Button Pressed =====');
+                  console.log('🔵 isAvailable:', isAvailable);
+                  console.log('🔵 permissions:', JSON.stringify(permissions, null, 2));
+                  
+                  if (!isAvailable) {
+                    Alert.alert(
+                      'HealthKit Not Available',
+                      'HealthKit is not available on this device. Make sure you are on a physical iPhone (not simulator) and HealthKit is enabled in Apple Developer Portal.',
+                      [{ text: 'OK' }]
+                    );
+                    return;
+                  }
+
+                  // Navigate to the onboarding flow
                   if (!permissions?.granted) {
-                    const status = await requestPermissions();
-                    if (status.granted) {
-                      // Auto-sync after granting permissions
-                      await syncToSupabase();
-                    } else {
-                      Alert.alert(
-                        'Permissions Required',
-                        'Please grant HealthKit permissions in Settings to sync your health data.'
-                      );
-                    }
+                    // Start the onboarding flow
+                    router.push('/connect-apple-health');
                   } else {
-                    // Manual sync
-                    const result = await syncToSupabase();
-                    if (result.success) {
-                      Alert.alert('Success', `Synced ${result.synced} health records`);
-                    } else {
-                      Alert.alert('Sync Error', `Failed to sync. ${result.errors} errors.`);
-                    }
+                    // Already connected - trigger manual sync
+                    handleManualSync();
                   }
                 }}
-                disabled={syncLoading || permissionsLoading}
+                disabled={false}
+                activeOpacity={0.7}
               >
                 {syncLoading || permissionsLoading ? (
                   <ActivityIndicator color={Colors.light.text} size="small" />
                 ) : (
                   <Text style={styles.connectDeviceText}>
-                    {permissions?.granted ? 'Sync Health Data' : 'Connect Apple Health'}
+                    {!isAvailable 
+                      ? 'HealthKit Unavailable' 
+                      : permissions?.granted 
+                        ? 'Sync Health Data' 
+                        : 'Connect Apple Health'}
                   </Text>
                 )}
               </TouchableOpacity>
             )}
-            {(!isAvailable || Platform.OS !== 'ios') && (
+            {Platform.OS !== 'ios' && (
               <TouchableOpacity style={styles.connectDeviceButton}>
                 <Text style={styles.connectDeviceText}>Connect a device</Text>
               </TouchableOpacity>

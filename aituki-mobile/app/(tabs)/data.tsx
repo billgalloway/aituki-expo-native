@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -34,6 +35,7 @@ const services = [
 const USE_IMAGES = true;
 
 export default function DataScreen() {
+  const router = useRouter();
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   // Apple Health integration
@@ -63,6 +65,12 @@ export default function DataScreen() {
   const handleAppleHealthPress = async () => {
     if (Platform.OS !== 'ios') {
       Alert.alert('Not Available', 'Apple Health is only available on iOS devices.');
+      return;
+    }
+
+    // Navigate to onboarding flow if not connected
+    if (!permissions?.granted) {
+      router.push('/connect-apple-health');
       return;
     }
 

@@ -58,10 +58,7 @@
         "resourceClass": "medium",
         "buildType": "app-bundle"
       },
-      "channel": "production",
-      "env": {
-        "EXPO_NO_CAPABILITY_SYNC": "1"
-      }
+      "channel": "production"
     }
   },
   "submit": {

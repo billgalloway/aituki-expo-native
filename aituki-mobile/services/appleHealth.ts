@@ -5,6 +5,7 @@
  */
 
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 // HealthKit types mapping
 export enum HealthDataType {
@@ -46,28 +47,48 @@ export interface PermissionStatus {
   unavailable: boolean;
 }
 
-// HealthKit wrapper (will be implemented with actual library)
-let HealthKit: any = null;
+// HealthKit library imports
+let HealthKitModule: any = null;
+let isInitialized = false;
 
 // Initialize HealthKit (only on iOS)
-// Note: Made optional to prevent build failures if library has issues
 const initHealthKit = async () => {
   if (Platform.OS !== 'ios') {
     console.warn('HealthKit is only available on iOS');
     return false;
   }
 
+  // Check if we're running in Expo Go (native modules don't work there)
+  const isExpoGo = Constants.executionEnvironment === 'storeClient';
+  if (isExpoGo) {
+    console.warn('HealthKit: Native modules are not available in Expo Go. Please use a development build to test HealthKit features.');
+    return false;
+  }
+
+  if (isInitialized && HealthKitModule) {
+    return true;
+  }
+
   try {
-    // Dynamic import for HealthKit library
-    // Using try-catch to gracefully handle if library isn't properly installed
-    // TEMPORARY: Commented out due to Swift compilation error in library
-    // TODO: Fix or replace @kingstinct/react-native-healthkit library
+    // Import the HealthKit library
+    // Use a safer require pattern that handles errors gracefully
     let healthKitModule;
     try {
-      // @ts-ignore - Library may have build issues
-      healthKitModule = require('@kingstinct/react-native-healthkit');
+      if (typeof require !== 'undefined') {
+        healthKitModule = require('@kingstinct/react-native-healthkit');
+        console.log('HealthKit module loaded:', Object.keys(healthKitModule));
+      } else {
+        console.warn('HealthKit: require not available');
+        return false;
+      }
     } catch (requireError: any) {
-      console.warn('HealthKit library not available (may not be installed or has build issues):', requireError?.message || requireError);
+      // This catches both regular errors and invariant violations
+      const errorMsg = requireError?.message || String(requireError);
+      if (errorMsg.includes('native module') || errorMsg.includes('Invariant Violation')) {
+        console.warn('HealthKit: Native module not available. Make sure you are using a development build (not Expo Go) to test HealthKit.');
+      } else {
+        console.warn('HealthKit library not available:', errorMsg);
+      }
       return false;
     }
     
@@ -76,25 +97,15 @@ const initHealthKit = async () => {
       return false;
     }
     
-    // The library exports as a default export or named exports
-    HealthKit = healthKitModule.default || healthKitModule.HealthKit || healthKitModule;
-    
-    if (!HealthKit) {
-      console.warn('HealthKit module loaded but no valid export found');
-      return false;
-    }
-    
-    // Check if required methods exist
-    if (typeof HealthKit.isAvailable !== 'function' && typeof HealthKit.requestAuthorization !== 'function') {
-      console.warn('HealthKit module loaded but required methods not found');
-      return false;
-    }
+    // The library uses named exports
+    HealthKitModule = healthKitModule;
+    isInitialized = true;
     
     console.log('HealthKit module initialized successfully');
+    console.log('Available methods:', Object.keys(HealthKitModule));
     return true;
   } catch (error) {
-    console.warn('Failed to load HealthKit module (non-fatal, app will continue without HealthKit):', error);
-    // Return false instead of throwing - allows app to continue working
+    console.error('Failed to load HealthKit module:', error);
     return false;
   }
 };
@@ -105,43 +116,31 @@ const initHealthKit = async () => {
  */
 export async function isHealthKitAvailable(): Promise<boolean> {
   if (Platform.OS !== 'ios') {
+    console.log('HealthKit: Not iOS platform');
     return false;
   }
 
-  // Check if running on simulator
-  // HealthKit is not available on simulators
-  if (Platform.isPad === false && Platform.isTVOS === false) {
-    // This is a basic check, but we should also check the actual device type
-    // For now, we'll rely on the library's isAvailable() check
-  }
-
-  if (!HealthKit) {
-    const initialized = await initHealthKit();
-    if (!initialized) {
-      console.warn('HealthKit module failed to initialize - may be missing or not properly configured');
-      return false;
-    }
-  }
-
-  if (!HealthKit) {
+  const initialized = await initHealthKit();
+  if (!initialized || !HealthKitModule) {
+    console.warn('HealthKit module failed to initialize');
     return false;
   }
 
   try {
-    // Check if the method exists
-    if (typeof HealthKit.isAvailable !== 'function') {
-      console.error('HealthKit.isAvailable is not a function');
-      console.log('Available HealthKit methods:', Object.keys(HealthKit));
+    // The library uses isHealthDataAvailable() method
+    const checkMethod = HealthKitModule.isHealthDataAvailable || HealthKitModule.isAvailable;
+    
+    if (!checkMethod || typeof checkMethod !== 'function') {
+      console.error('HealthKit availability check method not found');
+      console.log('Available methods:', Object.keys(HealthKitModule));
       return false;
     }
     
-    const available = await HealthKit.isAvailable();
-    console.log('HealthKit.isAvailable() returned:', available);
-    return available;
+    const available = await checkMethod();
+    console.log('HealthKit availability check returned:', available);
+    return available === true;
   } catch (error) {
     console.error('Error checking HealthKit availability:', error);
-    // If error occurs, it might be because we're on a simulator
-    // HealthKit always returns false on simulators
     return false;
   }
 }
@@ -154,50 +153,56 @@ export async function requestHealthKitPermissions(): Promise<PermissionStatus> {
     return { granted: false, denied: false, unavailable: true };
   }
 
-  if (!HealthKit) {
-    const initialized = await initHealthKit();
-    if (!initialized) {
-      return { granted: false, denied: false, unavailable: true };
-    }
+  const initialized = await initHealthKit();
+  if (!initialized || !HealthKitModule) {
+    console.error('HealthKit module not initialized');
+    return { granted: false, denied: false, unavailable: true };
   }
 
   try {
-    // Check if the method exists
-    if (!HealthKit.requestAuthorization) {
+    const requestAuth = HealthKitModule.requestAuthorization;
+    
+    if (!requestAuth || typeof requestAuth !== 'function') {
       console.error('HealthKit.requestAuthorization method not found');
-      console.log('Available HealthKit methods:', Object.keys(HealthKit));
+      console.log('Available methods:', Object.keys(HealthKitModule));
       return { granted: false, denied: false, unavailable: true };
     }
 
-    // Define permissions for all data types we need
-    // Note: @kingstinct/react-native-healthkit uses different permission format
+    // Use QuantityTypeIdentifier enum if available, otherwise use strings
+    const QuantityTypeIdentifier = HealthKitModule.QuantityTypeIdentifier || {};
+    const CategoryTypeIdentifier = HealthKitModule.CategoryTypeIdentifier || {};
+
+    // Define permissions using the library's format
     const permissions = {
-      read: [
-        'StepCount',
-        'ActiveEnergyBurned',
-        'DistanceWalkingRunning',
-        'HeartRate',
-        'HeartRateVariabilitySDNN',
-        'SleepAnalysis',
-        'RespiratoryRate',
-        'BasalEnergyBurned',
-        'BodyMass',
-        'VO2Max',
-        'MindfulSession',
-        'Workout',
+      toRead: [
+        QuantityTypeIdentifier.stepCount || 'HKQuantityTypeIdentifierStepCount',
+        QuantityTypeIdentifier.activeEnergyBurned || 'HKQuantityTypeIdentifierActiveEnergyBurned',
+        QuantityTypeIdentifier.distanceWalkingRunning || 'HKQuantityTypeIdentifierDistanceWalkingRunning',
+        QuantityTypeIdentifier.heartRate || 'HKQuantityTypeIdentifierHeartRate',
+        QuantityTypeIdentifier.heartRateVariabilitySDNN || 'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
+        QuantityTypeIdentifier.respiratoryRate || 'HKQuantityTypeIdentifierRespiratoryRate',
+        QuantityTypeIdentifier.basalEnergyBurned || 'HKQuantityTypeIdentifierBasalEnergyBurned',
+        QuantityTypeIdentifier.bodyMass || 'HKQuantityTypeIdentifierBodyMass',
+        QuantityTypeIdentifier.vo2Max || 'HKQuantityTypeIdentifierVO2Max',
+        CategoryTypeIdentifier.sleepAnalysis || 'HKCategoryTypeIdentifierSleepAnalysis',
+        CategoryTypeIdentifier.mindfulSession || 'HKCategoryTypeIdentifierMindfulSession',
+        'HKWorkoutTypeIdentifier', // Workout type
       ],
-      write: [], // We're only reading data for now
+      toWrite: [], // We're only reading data for now
     };
 
-    console.log('Requesting HealthKit permissions with:', permissions);
-    const result = await HealthKit.requestAuthorization(permissions);
-    console.log('HealthKit permission result:', result);
+    console.log('Requesting HealthKit permissions...');
+    const result = await requestAuth(permissions);
+    console.log('HealthKit permission result:', JSON.stringify(result, null, 2));
     
-    // Handle different response formats
+    // Handle response format - library returns { status: 'authorized' | 'denied' | 'notDetermined' }
     if (typeof result === 'object' && result !== null) {
+      const isAuthorized = result.status === 'authorized' || result.authorized === true;
+      const isDenied = result.status === 'denied' || result.denied === true;
+      
       return {
-        granted: result.status === 'authorized' || result.authorized === true,
-        denied: result.status === 'denied' || result.denied === true,
+        granted: isAuthorized,
+        denied: isDenied,
         unavailable: false,
       };
     }
@@ -209,6 +214,7 @@ export async function requestHealthKitPermissions(): Promise<PermissionStatus> {
     };
   } catch (error) {
     console.error('Error requesting HealthKit permissions:', error);
+    console.error('Error details:', error instanceof Error ? error.message : String(error));
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return { granted: false, denied: true, unavailable: false };
   }
@@ -221,16 +227,16 @@ export async function getStepCount(
   startDate: Date,
   endDate: Date = new Date()
 ): Promise<HealthDataSample[]> {
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     await initHealthKit();
   }
 
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     return [];
   }
 
   try {
-    const samples = await HealthKit.getQuantitySamples({
+    const samples = await HealthKitModule.getQuantitySamples({
       type: 'StepCount',
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
@@ -260,16 +266,16 @@ export async function getHeartRate(
   startDate: Date,
   endDate: Date = new Date()
 ): Promise<HealthDataSample[]> {
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     await initHealthKit();
   }
 
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     return [];
   }
 
   try {
-    const samples = await HealthKit.getQuantitySamples({
+    const samples = await HealthKitModule.getQuantitySamples({
       type: 'HeartRate',
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
@@ -299,16 +305,16 @@ export async function getActiveEnergy(
   startDate: Date,
   endDate: Date = new Date()
 ): Promise<HealthDataSample[]> {
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     await initHealthKit();
   }
 
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     return [];
   }
 
   try {
-    const samples = await HealthKit.getQuantitySamples({
+    const samples = await HealthKitModule.getQuantitySamples({
       type: 'ActiveEnergyBurned',
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
@@ -338,16 +344,16 @@ export async function getSleepAnalysis(
   startDate: Date,
   endDate: Date = new Date()
 ): Promise<HealthDataSample[]> {
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     await initHealthKit();
   }
 
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     return [];
   }
 
   try {
-    const samples = await HealthKit.getCategorySamples({
+    const samples = await HealthKitModule.getCategorySamples({
       type: 'SleepAnalysis',
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
@@ -383,16 +389,16 @@ export async function getDistanceWalkingRunning(
   startDate: Date,
   endDate: Date = new Date()
 ): Promise<HealthDataSample[]> {
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     await initHealthKit();
   }
 
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     return [];
   }
 
   try {
-    const samples = await HealthKit.getQuantitySamples({
+    const samples = await HealthKitModule.getQuantitySamples({
       type: 'DistanceWalkingRunning',
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
@@ -422,16 +428,16 @@ export async function getWorkouts(
   startDate: Date,
   endDate: Date = new Date()
 ): Promise<HealthDataSample[]> {
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     await initHealthKit();
   }
 
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     return [];
   }
 
   try {
-    const workouts = await HealthKit.getWorkouts({
+    const workouts = await HealthKitModule.getWorkouts({
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
     });
@@ -468,16 +474,16 @@ export async function getHeartRateVariability(
   startDate: Date,
   endDate: Date = new Date()
 ): Promise<HealthDataSample[]> {
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     await initHealthKit();
   }
 
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     return [];
   }
 
   try {
-    const samples = await HealthKit.getQuantitySamples({
+    const samples = await HealthKitModule.getQuantitySamples({
       type: 'HeartRateVariabilitySDNN',
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
@@ -507,16 +513,16 @@ export async function getMindfulMinutes(
   startDate: Date,
   endDate: Date = new Date()
 ): Promise<HealthDataSample[]> {
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     await initHealthKit();
   }
 
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     return [];
   }
 
   try {
-    const samples = await HealthKit.getCategorySamples({
+    const samples = await HealthKitModule.getCategorySamples({
       type: 'MindfulSession',
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
@@ -551,16 +557,16 @@ export async function getRespiratoryRate(
   startDate: Date,
   endDate: Date = new Date()
 ): Promise<HealthDataSample[]> {
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     await initHealthKit();
   }
 
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     return [];
   }
 
   try {
-    const samples = await HealthKit.getQuantitySamples({
+    const samples = await HealthKitModule.getQuantitySamples({
       type: 'RespiratoryRate',
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
@@ -590,16 +596,16 @@ export async function getRestingEnergy(
   startDate: Date,
   endDate: Date = new Date()
 ): Promise<HealthDataSample[]> {
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     await initHealthKit();
   }
 
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     return [];
   }
 
   try {
-    const samples = await HealthKit.getQuantitySamples({
+    const samples = await HealthKitModule.getQuantitySamples({
       type: 'BasalEnergyBurned',
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
@@ -629,16 +635,16 @@ export async function getBodyMass(
   startDate: Date,
   endDate: Date = new Date()
 ): Promise<HealthDataSample[]> {
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     await initHealthKit();
   }
 
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     return [];
   }
 
   try {
-    const samples = await HealthKit.getQuantitySamples({
+    const samples = await HealthKitModule.getQuantitySamples({
       type: 'BodyMass',
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
@@ -668,16 +674,16 @@ export async function getVO2Max(
   startDate: Date,
   endDate: Date = new Date()
 ): Promise<HealthDataSample[]> {
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     await initHealthKit();
   }
 
-  if (!HealthKit) {
+  if (!HealthKitModule) {
     return [];
   }
 
   try {
-    const samples = await HealthKit.getQuantitySamples({
+    const samples = await HealthKitModule.getQuantitySamples({
       type: 'VO2Max',
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
