@@ -9,6 +9,7 @@ import { Image } from 'expo-image';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import StressDashboard from '@/components/StressDashboard';
+import { useHeroPrograms } from '@/hooks/useHeroPrograms';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '@/constants/theme';
 import IconLibrary from '@/components/IconLibrary';
 import ImageLibrary from '@/components/ImageLibrary';
@@ -140,6 +141,7 @@ const suggestions = [
 export default function HomeScreen() {
   const [showAlert, setShowAlert] = useState(true);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+  const { heroPrograms } = useHeroPrograms();
 
   const isInvalidImageUrl = (url: string | undefined): boolean => {
     if (!url || typeof url !== 'string') return true;
@@ -192,6 +194,52 @@ export default function HomeScreen() {
             <Text style={styles.sectionTitle}>Stress Parameter</Text>
           </View>
           <StressDashboard stressLevel={60} stressLabel="Stress rising" />
+        </View>
+
+        {/* Articles Section – Figma 2751-26056: same title style + padding as other sections, then carousel */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <IconLibrary iconName="article" size={24} color={Colors.light.text} />
+            <Text style={styles.sectionTitle}>Articles</Text>
+          </View>
+          <View style={styles.articlesCard}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.articlesCarouselContent}
+            >
+              {heroPrograms.map((article) => (
+                <View key={article.sys.id} style={styles.articleCarouselCard}>
+                  <View style={styles.articleCard}>
+                    <View style={styles.articleImageContainer}>
+                      {isInvalidImageUrl(article.image) ? (
+                        <View style={[styles.articleImage, styles.imagePlaceholder]}>
+                          <IconLibrary iconName="photo" size={24} color={Colors.light.textSecondary} />
+                        </View>
+                      ) : (
+                        <Image
+                          source={{ uri: article.image }}
+                          style={styles.articleImage}
+                          contentFit="cover"
+                          transition={200}
+                          onError={() => setImageErrors(prev => new Set(prev).add(article.image))}
+                        />
+                      )}
+                    </View>
+                    <View style={styles.articleContent}>
+                      <View style={styles.articleHeader}>
+                        <Text style={styles.articleTitle} numberOfLines={2}>{article.title}</Text>
+                        <TouchableOpacity>
+                          <IconLibrary iconName="more-vert" size={20} color={Colors.light.text} />
+                        </TouchableOpacity>
+                      </View>
+                      <Text style={styles.articleDuration} numberOfLines={1}>{article.formattedDuration || ''}</Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
         </View>
 
         {/* Cortisol Alert */}
@@ -363,6 +411,70 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.md,
   },
+  // Articles card – Figma exact: width 345px, padding 0, column, gap 0, radius 8px (no shadow, no keyline)
+  articlesCard: {
+    width: 345,
+    padding: 0,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 0,
+    borderRadius: 8,
+    backgroundColor: '#FFF',
+  },
+  articlesCarouselContent: {
+    gap: Spacing.md,
+  },
+  articleCarouselCard: {
+    width: 300,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  articleCard: {
+    width: '100%',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(31, 86, 97, 0.15)',
+    backgroundColor: Colors.light.background,
+    overflow: 'hidden',
+  },
+  articleImageContainer: {
+    overflow: 'hidden',
+  },
+  articleImage: {
+    width: '100%',
+    height: 170,
+  },
+  articleContent: {
+    padding: Spacing.md,
+    paddingTop: Spacing.sm,
+  },
+  articleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.xs,
+  },
+  articleTitle: {
+    flex: 1,
+    fontFamily: Typography.fontFamily,
+    fontSize: 20,
+    fontStyle: 'normal',
+    fontWeight: Typography.fontWeight.medium,
+    lineHeight: 24.7,
+    letterSpacing: 0.25,
+    color: Colors.light.text,
+    marginRight: Spacing.sm,
+  },
+  articleDuration: {
+    fontFamily: Typography.fontFamily,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.light.textSecondary,
+  },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -497,11 +609,12 @@ const styles = StyleSheet.create({
   },
   goalTitle: {
     fontFamily: Typography.fontFamily,
-    fontSize: Typography.fontSize.sm,
+    fontSize: 20,
+    fontStyle: 'normal',
     fontWeight: Typography.fontWeight.medium,
+    lineHeight: 24.7,
+    letterSpacing: 0.25,
     color: Colors.light.text,
-    lineHeight: 22.4,
-    letterSpacing: 0.15,
   },
   goalDivider: {
     height: 1,
@@ -594,11 +707,12 @@ const styles = StyleSheet.create({
   },
   suggestionTitle: {
     fontFamily: Typography.fontFamily,
-    fontSize: Typography.fontSize.lg,
+    fontSize: 20,
+    fontStyle: 'normal',
     fontWeight: Typography.fontWeight.medium,
-    color: Colors.light.text,
     lineHeight: 24.7,
     letterSpacing: 0.25,
+    color: Colors.light.text,
   },
   suggestionRating: {
     flexDirection: 'row',

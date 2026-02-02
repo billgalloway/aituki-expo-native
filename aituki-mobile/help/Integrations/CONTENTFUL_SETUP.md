@@ -78,6 +78,14 @@ This guide will help you set up Contentful to manage hero card content for the A
 4. Click "Publish"
 5. Repeat for all hero programs you want to display
 
+### Optional: Article content type (Articles list – Figma 668-20891)
+
+To power the Articles list on the Home screen from Contentful:
+
+1. In Content model, add a content type with API ID: `article`
+2. Add fields: **Title** (Short text, `title`), **Slug** (Short text, `slug`), **Excerpt** (Long text, `excerpt`), **Body** (Long text, `body`), **Image** (Media, `image`) or **Image URL** (Short text, `imageUrl`)
+3. Publish the content type and add entries. The app will show these in the Articles list; if the type is missing or empty, it falls back to default articles.
+
 ## Step 5: Configure Environment Variables
 
 1. Create a `.env` file in the `aituki-mobile` directory (if it doesn't exist)

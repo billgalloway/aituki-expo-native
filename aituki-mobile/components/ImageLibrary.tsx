@@ -60,6 +60,12 @@ export const deviceImages = {
   auro: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/data/auro.png",
 };
 
+// Misc/screen images (e.g. health connect, onboarding)
+// Stored in Supabase Storage: images/misc/
+export const miscImages = {
+  healthScreen: "https://hhdntbgtedclqqufpzfj.supabase.co/storage/v1/object/public/images/misc/healthScreen.png",
+};
+
 // Service icons for data tab
 // Stored in Supabase Storage: images/data/
 export const serviceImages = {
@@ -92,6 +98,10 @@ export const getDeviceImage = (key: keyof typeof deviceImages): string => {
   return deviceImages[key];
 };
 
+export const getMiscImage = (key: keyof typeof miscImages): string => {
+  return miscImages[key];
+};
+
 export const getServiceImage = (key: keyof typeof serviceImages): string => {
   return serviceImages[key];
 };
@@ -113,12 +123,14 @@ const ImageLibrary = {
   suggestions: suggestionImages,
   programs: programImages,
   devices: deviceImages,
+  misc: miscImages,
   services: serviceImages,
   getHeroImage,
   getTodayImage,
   getSuggestionImage,
   getProgramImage,
   getDeviceImage,
+  getMiscImage,
   getServiceImage,
   // Safe getters that validate URLs and provide fallbacks
   getSafeHeroImage: (key: keyof typeof heroImages): string => getSafeImageUrl(heroImages[key]),
@@ -126,6 +138,7 @@ const ImageLibrary = {
   getSafeSuggestionImage: (key: keyof typeof suggestionImages): string => getSafeImageUrl(suggestionImages[key]),
   getSafeProgramImage: (key: keyof typeof programImages): string => getSafeImageUrl(programImages[key]),
   getSafeDeviceImage: (key: keyof typeof deviceImages): string => getSafeImageUrl(deviceImages[key]),
+  getSafeMiscImage: (key: keyof typeof miscImages): string => getSafeImageUrl(miscImages[key]),
   getSafeServiceImage: (key: keyof typeof serviceImages): string => getSafeImageUrl(serviceImages[key]),
 };
 

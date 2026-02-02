@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLocalSearchParams } from 'expo-router';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import ChatInterface from '@/components/ChatInterface';
@@ -43,11 +44,13 @@ const goalSuggestions = [
 import { ChatMessage } from '@/services/openai';
 
 export default function TwinScreen() {
+  const { focusInput } = useLocalSearchParams<{ focusInput?: string }>();
   const [showAlert, setShowAlert] = useState(true);
   const [hasMessages, setHasMessages] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const insets = useSafeAreaInsets();
+  const shouldFocusInput = focusInput === 'true';
   
   // System prompt for the AI twin - customize this to match your app's personality
   const aiSystemPrompt = `You are a helpful AI wellness assistant for the AiTuki app. You help users with their health and wellness goals, providing personalized guidance based on their data and preferences. Be friendly, supportive, concise, and encouraging. Focus on health, fitness, perimenopause support, wellbeing, and spiritual growth.`;
@@ -74,7 +77,7 @@ export default function TwinScreen() {
       {hasMessages ? (
         // When messages exist: Chat interface takes remaining space
         <ChatInterface
-          key="twin-chat" // Same key to preserve state across remounts
+          key="twin-chat"
           systemPrompt={aiSystemPrompt}
           placeholder="Ask me anything"
           onMessagesChange={handleMessagesChange}
@@ -85,6 +88,7 @@ export default function TwinScreen() {
           initialLoading={isLoading}
           inputHeight={120}
           bottomPadding={32}
+          autoFocus={shouldFocusInput}
         />
       ) : (
         // Initial state: Scrollable content with chat input in flow
@@ -122,7 +126,7 @@ export default function TwinScreen() {
           <View style={styles.chatSection}>
             <View style={styles.chatSectionInner}>
               <ChatInterface
-                key="twin-chat" // Same key to preserve state across remounts
+                key="twin-chat"
                 systemPrompt={aiSystemPrompt}
                 placeholder="Ask me anything"
                 onMessagesChange={handleMessagesChange}
@@ -133,6 +137,7 @@ export default function TwinScreen() {
                 initialLoading={isLoading}
                 inputHeight={192}
                 bottomPadding={32}
+                autoFocus={shouldFocusInput}
               />
               {/* Alert */}
               {showAlert && (

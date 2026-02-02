@@ -11,7 +11,8 @@
     "build": "npx expo export -p web --output-dir dist && cp _redirects dist/_redirects",
     "lint": "expo lint",
     "upload-images": "node scripts/upload-all-images.js",
-    "upload-images-interactive": "node scripts/upload-images-interactive.js"
+    "upload-images-interactive": "node scripts/upload-images-interactive.js",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -25,6 +26,7 @@
     "contentful": "^11.9.0",
     "expo": "~54.0.31",
     "expo-auth-session": "^7.0.10",
+    "expo-av": "~16.0.8",
     "expo-constants": "~18.0.13",
     "expo-crypto": "^15.0.8",
     "expo-dev-client": "~6.0.20",
@@ -62,6 +64,7 @@
     "@types/react": "~19.1.10",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "patch-package": "^8.0.1",
     "typescript": "~5.9.2"
   },
   "private": true

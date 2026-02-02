@@ -164,8 +164,11 @@ const styles = StyleSheet.create({
   },
   goalTitle: {
     fontFamily: Typography.fontFamily,
-    fontSize: Typography.fontSize.xl,
+    fontSize: 20,
+    fontStyle: 'normal',
     fontWeight: Typography.fontWeight.medium,
+    lineHeight: 24.7,
+    letterSpacing: 0.25,
     color: Colors.light.text,
     marginBottom: Spacing.xs,
   },

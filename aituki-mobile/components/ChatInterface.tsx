@@ -20,6 +20,7 @@ import {
   Keyboard,
   Modal,
   Animated,
+  InteractionManager,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
@@ -38,6 +39,7 @@ interface ChatInterfaceProps {
   inputHeight?: number; // Custom height for the input box (default: 192)
   bottomPadding?: number; // Additional bottom padding to move icons up (default: 0)
   initialLoading?: boolean; // Allow parent to provide initial loading state
+  autoFocus?: boolean; // When true, focus the input and open keyboard on mount (e.g. when navigating from "Ask AiTuki anything")
 }
 
 export default function ChatInterface({
@@ -53,6 +55,7 @@ export default function ChatInterface({
   inputHeight = 192,
   bottomPadding = 0,
   initialLoading = false,
+  autoFocus = false,
 }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [inputText, setInputText] = useState('');
@@ -73,6 +76,36 @@ export default function ChatInterface({
       setIsLoading(initialLoading);
     }
   }, [initialLoading]);
+
+  // Auto-focus input and open keyboard when navigating from "Ask AiTuki anything"
+  const autoFocusTimeoutIds = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => {
+    if (!autoFocus) return;
+    hasAutoFocusedRef.current = false;
+    const focusInput = () => {
+      if (hasAutoFocusedRef.current) return;
+      textInputRef.current?.focus();
+      hasAutoFocusedRef.current = true;
+    };
+    // Wait for navigation/animations to finish, then focus so keyboard opens
+    const task = InteractionManager.runAfterInteractions(() => {
+      autoFocusTimeoutIds.current.push(setTimeout(focusInput, 300));
+      autoFocusTimeoutIds.current.push(setTimeout(focusInput, 800)); // Retry in case layout wasn't ready
+      autoFocusTimeoutIds.current.push(setTimeout(focusInput, 1500)); // Final retry for slow devices
+    });
+    return () => {
+      task.cancel();
+      autoFocusTimeoutIds.current.forEach(clearTimeout);
+      autoFocusTimeoutIds.current = [];
+    };
+  }, [autoFocus]);
+
+  const handleInputLayout = () => {
+    if (autoFocus && !hasAutoFocusedRef.current) {
+      setTimeout(() => textInputRef.current?.focus(), 50);
+      hasAutoFocusedRef.current = true;
+    }
+  };
   
   // Animate loading message bubble fade in/out and typing dots
   useEffect(() => {
@@ -140,6 +173,7 @@ export default function ChatInterface({
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const textInputRef = useRef<TextInput>(null);
+  const hasAutoFocusedRef = useRef(false);
   
   // Sync initialMessages prop changes to state
   useEffect(() => {
@@ -475,7 +509,8 @@ export default function ChatInterface({
           onPress={() => {
             // Focus the TextInput when anywhere in the wrapper is pressed (except icon buttons)
             textInputRef.current?.focus();
-          }}>
+          }}
+          onLayout={handleInputLayout}>
           {/* Text Input Area - container takes full space so Pressable receives touches in empty areas */}
           <View style={styles.textInputContainer} pointerEvents="box-none">
             <TextInput

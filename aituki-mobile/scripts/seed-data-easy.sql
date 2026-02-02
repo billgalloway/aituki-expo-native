@@ -65,7 +65,7 @@ UNION ALL
 SELECT 
   'steps_data' as table_name, 
   COUNT(*) as record_count 
-FROM steps_data 
+FROM steps_data npx 
 WHERE user_id = '3267d78c-5be9-4ad1-b3bc-89173f0b8563'
 UNION ALL
 SELECT 

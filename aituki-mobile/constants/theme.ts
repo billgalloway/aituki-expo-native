@@ -20,6 +20,7 @@ export const Colors = {
     
     // Background colors
     background: '#ffffff',
+    backgroundSecondary: 'rgba(31,86,97,0.06)',
     surface: '#ffffff',
     
     // Semantic colors
@@ -53,6 +54,7 @@ export const Colors = {
     
     // Background colors
     background: '#151718',
+    backgroundSecondary: 'rgba(236,237,238,0.06)',
     surface: '#1f1f1f',
     
     // Semantic colors
@@ -315,6 +317,20 @@ export const Shadows = {
     shadowRadius: 12,
     elevation: 8,
   },
+};
+
+// Loading / Splash screen – Figma aiTuki prototype (node-id=668-21530, 788-22077)
+// Gradient: lighter/white-teal top-left → darker saturated teal bottom-right
+export const LoadingScreenTheme = {
+  gradient: {
+    topLeft: '#75E5E8',   // lighter, white-teal (Figma)
+    mid: '#4EC9CD',       // mid teal – matches app.json splash backgroundColor
+    bottomRight: '#3AB5B9', // darker, saturated teal (Figma)
+  },
+  gradientLocations: [0, 0.45, 1] as [number, number, number],
+  gradientOverlayOpacity: 0.5,
+  logoSize: 120,
+  statusBarStyle: 'light' as const,
 };
 
 import { MD3LightTheme, MD3DarkTheme, configureFonts } from 'react-native-paper';

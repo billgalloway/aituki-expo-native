@@ -293,3 +293,57 @@ export async function fetchHeroPrograms(): Promise<HeroProgram[]> {
   }
 }
 
+// Article content type (for Articles section – Figma node 668-20891, Contentful CMS)
+export interface Article {
+  title: string;
+  slug: string;
+  excerpt?: string;
+  body?: string;
+  image: string;
+  sys: { id: string };
+  publishedAt?: string;
+}
+
+export async function fetchArticles(): Promise<Article[]> {
+  if (!contentfulClient) {
+    throw new Error('Contentful client not initialized. Check your environment variables.');
+  }
+  try {
+    const response = await contentfulClient.getEntries({
+      content_type: 'article',
+      order: '-sys.updatedAt',
+      include: 2,
+    });
+    return response.items.map((item: any) => {
+      if (!item?.fields) return null;
+      const fields = item.fields;
+      let imageUrl = '';
+      const image = fields.image;
+      if (image?.fields?.file?.url) {
+        const url = image.fields.file.url;
+        imageUrl = url.startsWith('//') ? `https:${url}` : (url.startsWith('http') ? url : `https:${url}`);
+      } else if (image?.sys?.linkType === 'Asset' && response.includes?.Asset) {
+        const asset = response.includes.Asset.find((a: any) => a.sys.id === image.sys.id);
+        if (asset?.fields?.file?.url) {
+          const url = asset.fields.file.url;
+          imageUrl = url.startsWith('//') ? `https:${url}` : (url.startsWith('http') ? url : `https:${url}`);
+        }
+      } else if (typeof fields.imageUrl === 'string') {
+        imageUrl = fields.imageUrl;
+      }
+      return {
+        title: (fields.title as string) || '',
+        slug: (fields.slug as string) || item.sys.id,
+        excerpt: fields.excerpt as string | undefined,
+        body: fields.body as string | undefined,
+        image: imageUrl,
+        sys: { id: item.sys.id },
+        publishedAt: (fields.publishedAt as string) || (item.sys as any).updatedAt,
+      };
+    }).filter((a): a is Article => a !== null);
+  } catch (e: any) {
+    console.warn('fetchArticles failed (content type "article" may not exist):', e?.message);
+    return [];
+  }
+}
+

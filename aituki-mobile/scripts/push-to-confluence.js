@@ -21,7 +21,8 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
-const { execSync } = require('child_process');
+
+try { require('dotenv').config({ path: path.join(__dirname, '..', '.env') }); } catch (_) {}
 
 // Configuration from environment variables
 const CONFLUENCE_BASE_URL = process.env.CONFLUENCE_BASE_URL || '';
@@ -171,13 +172,14 @@ async function getOrCreatePage(title, parentId, content, spaceKey) {
   }
 }
 
-// Process a markdown file
-async function processMarkdownFile(filePath, parentId, spaceKey) {
+// Process a markdown file (titleOverride: optional page title, otherwise derived from filename)
+async function processMarkdownFile(filePath, parentId, spaceKey, titleOverride) {
   const fullPath = path.join(__dirname, '..', filePath);
+  if (!fs.existsSync(fullPath)) return null;
   const fileName = path.basename(filePath, '.md');
   const content = fs.readFileSync(fullPath, 'utf8');
   const confluenceContent = markdownToConfluenceStorage(content);
-  const title = fileName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  const title = titleOverride || fileName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
   console.log(`Processing: ${title}`);
   return await getOrCreatePage(title, parentId, confluenceContent, spaceKey);
@@ -220,9 +222,57 @@ async function main() {
       CONFLUENCE_SPACE_KEY
     );
 
-    // Process each category
+    // --- Project (root .md in aituki-mobile) ---
+    console.log('\n📁 Processing category: Project');
+    const projectPage = await getOrCreatePage(
+      'Project',
+      mainPage.id,
+      '<p>Project and HealthKit documentation.</p>',
+      CONFLUENCE_SPACE_KEY
+    );
+    const rootDir = path.join(__dirname, '..');
+    const rootMd = fs.readdirSync(rootDir).filter(f => f.endsWith('.md'));
+    for (const f of rootMd) {
+      await processMarkdownFile(f, projectPage.id, CONFLUENCE_SPACE_KEY);
+    }
+
+    // --- Scripts ---
+    console.log('\n📁 Processing category: Scripts');
+    const scriptsPage = await getOrCreatePage(
+      'Scripts',
+      mainPage.id,
+      '<p>Script and setup guides.</p>',
+      CONFLUENCE_SPACE_KEY
+    );
+    const scriptsDir = path.join(__dirname, '..', 'scripts');
+    if (fs.existsSync(scriptsDir)) {
+      const scriptsMd = fs.readdirSync(scriptsDir).filter(f => f.endsWith('.md'));
+      for (const f of scriptsMd) {
+        await processMarkdownFile(`scripts/${f}`, scriptsPage.id, CONFLUENCE_SPACE_KEY);
+      }
+    }
+
+    // --- Reference (data, config, automations, Builds, tests) ---
+    console.log('\n📁 Processing category: Reference');
+    const refPage = await getOrCreatePage(
+      'Reference',
+      mainPage.id,
+      '<p>Data, config, automations, and test docs.</p>',
+      CONFLUENCE_SPACE_KEY
+    );
+    const refFiles = [
+      { path: 'data/README.md', title: 'Data' },
+      { path: 'config/README.md', title: 'Config' },
+      { path: 'automations/README.md', title: 'Automations' },
+      { path: 'Builds/README.md', title: 'Builds' },
+      { path: 'tests/test-oauth-profile-sync-README.md', title: 'Test OAuth Profile Sync' },
+    ];
+    for (const { path: p, title } of refFiles) {
+      await processMarkdownFile(p, refPage.id, CONFLUENCE_SPACE_KEY, title);
+    }
+
+    // --- Help categories (Android, iOS, Integrations, Deployment, General) ---
     const categories = ['Android', 'iOS', 'Integrations', 'Deployment', 'General'];
-    const categoryPages = {};
 
     for (const category of categories) {
       console.log(`\n📁 Processing category: ${category}`);
@@ -232,14 +282,11 @@ async function main() {
         `<p>Documentation for ${category}</p>`,
         CONFLUENCE_SPACE_KEY
       );
-      categoryPages[category] = categoryPage.id;
 
-      // Process files in this category
       const categoryDir = path.join(__dirname, '..', 'help', category);
       if (fs.existsSync(categoryDir)) {
         const files = fs.readdirSync(categoryDir)
           .filter(f => f.endsWith('.md') && !f.endsWith('.local'));
-
         for (const file of files) {
           await processMarkdownFile(
             `help/${category}/${file}`,
@@ -247,6 +294,11 @@ async function main() {
             CONFLUENCE_SPACE_KEY
           );
         }
+      }
+      // Help root files in General
+      if (category === 'General') {
+        await processMarkdownFile('help/ORGANIZATION_SUMMARY.md', categoryPage.id, CONFLUENCE_SPACE_KEY);
+        await processMarkdownFile('help/CONFLUENCE_SETUP.md', categoryPage.id, CONFLUENCE_SPACE_KEY);
       }
     }
 
