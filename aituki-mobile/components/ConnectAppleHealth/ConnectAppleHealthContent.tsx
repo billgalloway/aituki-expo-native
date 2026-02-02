@@ -1,28 +1,25 @@
 /**
- * Connect Apple Health – Scrollable content
- * Title, description, benefits list, privacy note.
- * Figma 173-30875 typography.
+ * Connect Apple Health – Scrollable content (title + description + info)
+ * Figma 173-30875. Info component under the text paragraph.
  */
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, Typography, Spacing } from '@/constants/theme';
-import ConnectAppleHealthDataTypes from './ConnectAppleHealthDataTypes';
-import ConnectAppleHealthBenefits from './ConnectAppleHealthBenefits';
-import ConnectAppleHealthPrivacy from './ConnectAppleHealthPrivacy';
+import { Typography, Spacing } from '@/constants/theme';
+import ConnectAppleHealthInfoNote from './ConnectAppleHealthInfoNote';
 
 const TITLE = 'Connect Apple Health';
 const DESCRIPTION =
-  'Connect your Apple Health data to get personalized insights and track your wellbeing across physical, emotional, mental, and energy pillars.';
+  'aiTuki uses this data to generate AI powered help and advice. It can create customised goals that are tailored specifically to you.';
 
 export default function ConnectAppleHealthContent() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{TITLE}</Text>
-      <Text style={styles.description}>{DESCRIPTION}</Text>
-      <ConnectAppleHealthDataTypes />
-      <ConnectAppleHealthBenefits />
-      <ConnectAppleHealthPrivacy />
+      <View style={styles.descriptionWrap}>
+        <Text style={styles.description}>{DESCRIPTION}</Text>
+      </View>
+      <ConnectAppleHealthInfoNote />
     </View>
   );
 }
@@ -31,19 +28,25 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     overflow: 'visible',
+    minHeight: Spacing.xl * 6 + Spacing.md,
+    flexShrink: 0,
   },
   title: {
     ...Typography.variants.h3,
-    color: Colors.light.text,
     textAlign: 'left',
     marginBottom: Spacing.md,
+    color: '#1F5661',
+  },
+  descriptionWrap: {
+    width: '100%',
+    minHeight: Spacing.xl * 2,
+    marginBottom: Spacing.md,
+    flexShrink: 0,
   },
   description: {
-    ...Typography.variants.body1,
-    color: Colors.light.textSecondary,
+    ...Typography.variants.body2,
     textAlign: 'left',
-    marginBottom: Spacing.xl,
-    paddingHorizontal: Spacing.md,
-    lineHeight: 24,
+    lineHeight: Typography.fontSize.sm * 1.5,
+    color: '#1F5661',
   },
 });

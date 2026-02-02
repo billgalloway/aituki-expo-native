@@ -33,8 +33,9 @@ export default function ConnectAppleHealthScreen() {
 
   return (
     <View style={styles.container}>
-      <ConnectAppleHealthHeader />
-
+      <View style={styles.headerWrapper}>
+        <ConnectAppleHealthHeader />
+      </View>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -45,7 +46,6 @@ export default function ConnectAppleHealthScreen() {
           <ConnectAppleHealthContent />
         </View>
       </ScrollView>
-
       <ConnectAppleHealthActions
         onConnect={handleConnect}
         onEnterDataManually={handleEnterDataManually}
@@ -60,15 +60,20 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.background,
     overflow: 'visible',
   },
+  headerWrapper: {
+    zIndex: 10,
+    elevation: 10,
+  },
   scrollView: {
     flex: 1,
     backgroundColor: Colors.light.background,
-    marginTop: 20,
+    marginTop: Spacing.lg,
     overflow: 'visible',
+    zIndex: 0,
   },
   scrollContent: {
     paddingTop: Spacing.md,
-    paddingBottom: 80,
+    paddingBottom: Spacing.xl * 2 + Spacing.md,
     alignItems: 'center',
     flexGrow: 0,
   },
@@ -78,5 +83,6 @@ const styles = StyleSheet.create({
     paddingRight: Spacing.xl,
     alignItems: 'flex-start',
     overflow: 'visible',
+    flexShrink: 0,
   },
 });

@@ -7,6 +7,7 @@ export { default as ConnectAppleHealthHeader } from './ConnectAppleHealthHeader'
 export { default as ConnectAppleHealthTitleAboveHero } from './ConnectAppleHealthTitleAboveHero';
 export { default as ConnectAppleHealthHero } from './ConnectAppleHealthHero';
 export { default as ConnectAppleHealthContent } from './ConnectAppleHealthContent';
+export { default as ConnectAppleHealthInfoNote } from './ConnectAppleHealthInfoNote';
 export { default as ConnectAppleHealthDataTypes } from './ConnectAppleHealthDataTypes';
 export { default as ConnectAppleHealthBenefits } from './ConnectAppleHealthBenefits';
 export { default as ConnectAppleHealthPrivacy } from './ConnectAppleHealthPrivacy';

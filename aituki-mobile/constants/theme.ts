@@ -15,6 +15,7 @@ export const Colors = {
     
     // Text colors
     text: '#1f5661',
+    textPrimary: '#1f5661',
     textSecondary: 'rgba(31,86,97,0.6)',
     textDisabled: 'rgba(31,86,97,0.38)',
     
@@ -49,6 +50,7 @@ export const Colors = {
     
     // Text colors
     text: '#ECEDEE',
+    textPrimary: '#ECEDEE',
     textSecondary: 'rgba(236,237,238,0.6)',
     textDisabled: 'rgba(236,237,238,0.38)',
     
