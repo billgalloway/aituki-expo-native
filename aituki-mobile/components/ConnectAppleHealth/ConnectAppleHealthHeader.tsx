@@ -10,9 +10,13 @@ import { useRouter } from 'expo-router';
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
 import IconLibrary from '@/components/IconLibrary';
 
-const TITLE = 'Connect Apple Health';
+const DEFAULT_TITLE = 'Connect Apple Health';
 
-export default function ConnectAppleHealthHeader() {
+type Props = {
+  title?: string;
+};
+
+export default function ConnectAppleHealthHeader({ title = DEFAULT_TITLE }: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -27,15 +31,15 @@ export default function ConnectAppleHealthHeader() {
             onPress={() => router.back()}
             accessibilityLabel="Go back"
           >
-            <IconLibrary iconName="chevron-left" size={35} color={Colors.light.text} />
+            <IconLibrary iconName="chevron-left" size={35} color={Colors.light.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.title}>{TITLE}</Text>
+          <Text style={styles.title}>{title}</Text>
           <TouchableOpacity
             style={styles.alertsButton}
             onPress={() => router.push('/alerts-notifications')}
             accessibilityLabel="Alerts"
           >
-            <IconLibrary iconName="notifications" size={24} color={Colors.light.text} />
+            <IconLibrary iconName="notifications" size={24} color={Colors.light.textPrimary} />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -86,7 +90,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.variants.h4,
-    color: Colors.light.text,
+    color: Colors.light.textPrimary,
     position: 'absolute',
     left: 0,
     right: 0,

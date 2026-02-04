@@ -40,8 +40,8 @@ export default function ConnectAppleHealthScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
-        <ConnectAppleHealthTitleAboveHero />
         <View style={styles.scrollContentInner}>
+          <ConnectAppleHealthTitleAboveHero />
           <ConnectAppleHealthHero />
           <ConnectAppleHealthContent />
         </View>
@@ -67,7 +67,6 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     backgroundColor: Colors.light.background,
-    marginTop: Spacing.lg,
     overflow: 'visible',
     zIndex: 0,
   },

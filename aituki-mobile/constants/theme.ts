@@ -41,6 +41,15 @@ export const Colors = {
     
     // Status colors
     statusBar: '#69f0f0',
+
+    // Switch (MUI / Tuki Figma design system node-id=11022-144509)
+    switch: {
+      trackColorOff: 'rgba(31,86,97,0.12)',
+      trackColorOn: '#69f0f0',
+      thumbColor: '#ffffff',
+      // iOS: background visible when track is off/translucent (RCTSwitch)
+      iosBackgroundColor: 'rgba(31,86,97,0.12)',
+    },
   },
   dark: {
     // Primary colors
@@ -76,6 +85,14 @@ export const Colors = {
     
     // Status colors
     statusBar: '#1f5661',
+
+    // Switch (MUI / Tuki Figma design system node-id=11022-144509)
+    switch: {
+      trackColorOff: 'rgba(236,237,238,0.12)',
+      trackColorOn: '#69f0f0',
+      thumbColor: '#ffffff',
+      iosBackgroundColor: 'rgba(236,237,238,0.12)',
+    },
   },
 };
 

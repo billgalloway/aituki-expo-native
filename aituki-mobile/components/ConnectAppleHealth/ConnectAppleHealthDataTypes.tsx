@@ -26,7 +26,7 @@ export default function ConnectAppleHealthDataTypes() {
               <IconLibrary
                 iconName={icon}
                 size={22}
-                color={Colors.light.primary}
+                color={Colors.light.textPrimary}
               />
             </View>
             <Text style={styles.label}>{label}</Text>
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.variants.body2,
-    color: Colors.light.textSecondary,
+    color: Colors.light.textPrimary,
     marginBottom: Spacing.sm,
     textAlign: 'left',
   },
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   },
   label: {
     ...Typography.variants.body2,
-    color: Colors.light.text,
+    color: Colors.light.textPrimary,
     fontSize: 12,
   },
 });

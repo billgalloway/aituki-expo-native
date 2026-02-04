@@ -5,12 +5,15 @@
  * Based on Figma design
  */
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useState, useLayoutEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { useRouter, useNavigation } from 'expo-router';
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
 import IconLibrary from '@/components/IconLibrary';
 import { useAppleHealth } from '@/hooks/useAppleHealth';
+import ConnectAppleHealthHeader from '@/components/ConnectAppleHealth/ConnectAppleHealthHeader';
+import ConnectAppleHealthTitleAboveHero from '@/components/ConnectAppleHealth/ConnectAppleHealthTitleAboveHero';
+import ThemedSwitch from '@/components/ThemedSwitch';
 
 // Health data types with descriptions
 const HEALTH_DATA_TYPES = [
@@ -102,7 +105,12 @@ const HEALTH_DATA_TYPES = [
 
 export default function AppleHealthPermissionsScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const { requestPermissions, isAvailable } = useAppleHealth({ autoSync: false });
+
+  useLayoutEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
   
   const [selectedTypes, setSelectedTypes] = useState<Record<string, boolean>>(() => {
     // Default: all enabled
@@ -150,28 +158,17 @@ export default function AppleHealthPermissionsScreen() {
     }
   };
 
-  const handleBack = () => {
-    router.back();
-  };
-
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={handleBack}
-        >
-          <IconLibrary iconName="chevron-left" size={24} color={Colors.light.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Apple Health Permissions</Text>
-        <View style={styles.headerSpacer} />
+      <View style={styles.headerWrapper}>
+        <ConnectAppleHealthHeader title="Apple Health Permissions" />
       </View>
 
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
+        <ConnectAppleHealthTitleAboveHero />
         <Text style={styles.description}>
           Select which health data types you'd like to share with AiTuki. You can change these settings anytime.
         </Text>
@@ -185,7 +182,7 @@ export default function AppleHealthPermissionsScreen() {
                   <IconLibrary 
                     iconName={type.icon} 
                     size={24} 
-                    color={Colors.light.primary} 
+                    color={Colors.light.textPrimary} 
                   />
                 </View>
                 <View style={styles.dataTypeInfo}>
@@ -194,14 +191,9 @@ export default function AppleHealthPermissionsScreen() {
                   <Text style={styles.dataTypeCategory}>{type.category}</Text>
                 </View>
               </View>
-              <Switch
+              <ThemedSwitch
                 value={selectedTypes[type.id]}
                 onValueChange={() => toggleDataType(type.id)}
-                trackColor={{ 
-                  false: Colors.light.border, 
-                  true: Colors.light.primary + '80' 
-                }}
-                thumbColor={selectedTypes[type.id] ? Colors.light.primary : Colors.light.textSecondary}
               />
             </View>
           ))}
@@ -209,7 +201,7 @@ export default function AppleHealthPermissionsScreen() {
 
         {/* Info Note */}
         <View style={styles.infoContainer}>
-          <IconLibrary iconName="info" size={20} color={Colors.light.textSecondary} />
+          <IconLibrary iconName="info" size={20} color={Colors.light.textPrimary} />
           <Text style={styles.infoText}>
             You'll be prompted to grant permissions in the next step. You can modify these settings later in iOS Settings.
           </Text>
@@ -238,27 +230,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.light.background,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
-  },
-  backButton: {
-    padding: Spacing.xs,
-  },
-  headerTitle: {
-    fontFamily: Typography.fontFamily,
-    fontSize: Typography.fontSize.lg,
-    fontWeight: '600',
-    color: Colors.light.text,
-  },
-  headerSpacer: {
-    width: 40,
+  headerWrapper: {
+    zIndex: 10,
+    elevation: 10,
   },
   scrollView: {
     flex: 1,

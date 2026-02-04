@@ -10,12 +10,12 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconLibrary } from '@/components/IconLibrary';
 import { Avatar, Chip, Divider } from 'react-native-paper';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '@/constants/theme';
+import ThemedSwitch from '@/components/ThemedSwitch';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -153,7 +153,7 @@ export default function AlertsNotificationsScreen() {
                     <Text style={styles.menuItemLabel}>{item.label}</Text>
                     <Text style={styles.menuItemValue}>{item.value}</Text>
                   </View>
-                  <Switch
+                  <ThemedSwitch
                     value={notifications[item.key as keyof typeof notifications]}
                     onValueChange={(value) => {
                       setNotifications(prev => ({
@@ -161,8 +161,6 @@ export default function AlertsNotificationsScreen() {
                         [item.key]: value,
                       }));
                     }}
-                    trackColor={{ false: Colors.light.textDisabled, true: Colors.light.primary }}
-                    thumbColor={Colors.light.background}
                   />
                 </View>
               </TouchableOpacity>

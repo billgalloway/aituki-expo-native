@@ -177,6 +177,42 @@ export async function syncOAuthUserToProfile(
 }
 
 /**
+ * Sync email signup metadata (first_name, last_name, mobile_number) to user_profiles.
+ * Used when user signed up with email and may not have had a session at signup (e.g. email confirmation).
+ * Creates profile from user_metadata if no profile exists.
+ */
+export async function syncEmailSignupMetadataToProfile(user: User): Promise<boolean> {
+  try {
+    if (!user?.id) return false;
+    const meta = user.user_metadata || {};
+    const hasMeta = meta.first_name != null || meta.last_name != null || meta.mobile_number != null;
+    if (!hasMeta) return true;
+
+    const existing = await fetchUserProfile(user.id);
+    if (existing) return true;
+
+    const email = user.email || '';
+    if (!email) return false;
+
+    const newProfile = await createUserProfile({
+      user_id: user.id,
+      email,
+      first_name: meta.first_name ?? null,
+      last_name: meta.last_name ?? null,
+      mobile_number: meta.mobile_number ?? null,
+    });
+    if (newProfile) {
+      console.log('✅ Created profile from email signup metadata');
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('❌ Error syncing email signup metadata to profile:', error);
+    return false;
+  }
+}
+
+/**
  * Check if user signed in via OAuth provider (Apple, Google, etc.)
  */
 export function isOAuthUser(user: User | null): boolean {

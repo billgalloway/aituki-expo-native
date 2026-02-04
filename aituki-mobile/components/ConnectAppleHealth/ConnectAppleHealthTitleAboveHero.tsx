@@ -21,14 +21,13 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     marginBottom: Spacing.md,
-    paddingLeft: Spacing.xl,
   },
   title: {
     fontFamily: Typography.fontFamily,
     fontSize: Typography.variants.h5.fontSize,
     fontWeight: Typography.variants.h5.fontWeight,
     lineHeight: 22,
-    color: Colors.light.text,
+    color: Colors.light.textPrimary,
     textAlign: 'left',
   },
 });

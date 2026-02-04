@@ -1,85 +1,109 @@
 /**
- * Password Reset Screen
- * Handles password reset from email link
+ * Password Reset Screens
+ * 1) Request reset (no params): Forgotten Password – logo, instruction, email field, "Reset password" button.
+ * 2) Set new password (from email link): Update password form.
+ * Light theme and layout match login/register (config/FIGMA_AUTH_COMPONENTS.md, constants/authTheme).
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/services/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
+import { AUTH_FIGMA, AUTH_LOGO_URI } from '@/constants/authTheme';
 import IconLibrary from '@/components/IconLibrary';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Image } from 'react-native';
+import FormTextField from '@/components/FormTextField';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { resetPassword: sendResetEmail } = useAuth();
+
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmError, setConfirmError] = useState('');
   const [isValidLink, setIsValidLink] = useState(true);
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const themeColors = isDark ? Colors.dark : Colors.light;
 
-  useEffect(() => {
-    // Check if we have the necessary tokens from the email link
-    if (!params?.access_token && !params?.type) {
-      setIsValidLink(false);
+  const themeColors = Colors.light;
+
+  // Request-reset screen when opened without link params (e.g. from "Forgotten Password?" on login).
+  // Temp link uses ?dev=set-password to show the set-new-password form.
+  const isRequestScreen =
+    !params?.access_token && !params?.type && params?.dev !== 'set-password';
+
+  const handleRequestReset = async () => {
+    if (!email?.trim()) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
     }
-  }, [params]);
+    setLoading(true);
+    const { error } = await sendResetEmail(email.trim());
+    setLoading(false);
+    if (error) {
+      const isRecoveryEmailError =
+        /recovery email|sending.*email|error sending/i.test(error.message);
+      const message = isRecoveryEmailError
+        ? 'Password reset emails are not set up yet. Please ask the app administrator to configure SMTP in Supabase (Settings → Auth → SMTP Settings).'
+        : error.message;
+      Alert.alert('Error', message);
+    } else {
+      Alert.alert(
+        'Password Reset Email Sent',
+        'Please check your email for instructions to reset your password.',
+        [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
+      );
+    }
+  };
 
-  const handleResetPassword = async () => {
+  const validateAndReset = () => {
+    setPasswordError('');
+    setConfirmError('');
     if (!password || !confirmPassword) {
       Alert.alert('Error', 'Please enter both password fields');
       return;
     }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
-    }
-
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      setPasswordError('Password must be at least 6 characters');
       return;
     }
+    if (password !== confirmPassword) {
+      setConfirmError('Passwords do not match');
+      return;
+    }
+    handleSetNewPassword();
+  };
 
+  const handleSetNewPassword = async () => {
     setLoading(true);
-
     try {
-      // If we have access_token from the email link, we need to set the session first
       if (params?.access_token) {
         const { error: sessionError } = await supabase.auth.setSession({
           access_token: params.access_token as string,
           refresh_token: params.refresh_token as string,
         });
-
         if (sessionError) {
-          Alert.alert('Error', 'Invalid or expired reset link. Please request a new one.');
-          router.replace('/(auth)/login');
+          setLoading(false);
+          setIsValidLink(false);
           return;
         }
       }
-
-      // Update the password
-      const { error } = await supabase.auth.updateUser({
-        password: password,
-      });
-
+      const { error } = await supabase.auth.updateUser({ password });
       setLoading(false);
-
       if (error) {
         Alert.alert('Error', error.message);
       } else {
@@ -89,98 +113,190 @@ export default function ResetPasswordScreen() {
           [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
         );
       }
-    } catch (error) {
+    } catch (err) {
       setLoading(false);
       Alert.alert('Error', 'Something went wrong. Please try again.');
     }
   };
 
+  // —— Forgotten Password (request reset) screen ——
+  if (isRequestScreen) {
+    return (
+      <KeyboardAvoidingView
+        style={[styles.container, { backgroundColor: AUTH_FIGMA.background }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled">
+          <View style={styles.scrollContentInner}>
+            <TouchableOpacity
+              style={styles.backLink}
+              onPress={() => router.replace('/(auth)/login')}
+              accessibilityRole="button"
+              accessibilityLabel="Back to sign in">
+              <IconLibrary iconName="chevron-left" size={24} color={themeColors.textPrimary} />
+              <Text style={[styles.backLinkText, { color: themeColors.textPrimary }]}>Back</Text>
+            </TouchableOpacity>
+
+            <View style={styles.content}>
+              <View style={styles.header}>
+                <Image
+                  source={{ uri: AUTH_LOGO_URI }}
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
+              </View>
+
+              <View style={styles.contentIndent}>
+                <Text style={[styles.instructionText, { color: themeColors.textPrimary }]}>
+                  Enter email address or mobile number to reset password
+                </Text>
+                <View style={styles.formContainer}>
+                  <FormTextField
+                    label="Email"
+                    placeholder="Value"
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    autoComplete="email"
+                    editable={!loading}
+                  />
+                  <TouchableOpacity
+                    style={[styles.primaryButton, { backgroundColor: themeColors.primary }]}
+                    onPress={handleRequestReset}
+                    disabled={loading}
+                    accessibilityRole="button"
+                    accessibilityLabel="Reset password">
+                    {loading ? (
+                      <ActivityIndicator size="small" color={themeColors.textPrimary} />
+                    ) : (
+                      <View style={styles.primaryButtonContent}>
+                        <Text style={[styles.primaryButtonText, { color: themeColors.textPrimary }]}>
+                          Reset password
+                        </Text>
+                        <IconLibrary iconName="chevron-right" size={18} color={themeColors.textPrimary} />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.tempLink}
+                    onPress={() => router.push('/(auth)/reset-password?dev=set-password')}
+                    accessibilityRole="link"
+                    accessibilityLabel="Page after clicking email link (temp)">
+                    <Text style={[styles.tempLinkText, { color: themeColors.textPrimary }]}>
+                      Page after clicking email link (temp)
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  // —— Invalid reset link ——
   if (!isValidLink) {
     return (
-      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <View style={[styles.container, { backgroundColor: AUTH_FIGMA.background }]}>
         <View style={styles.errorContainer}>
-          <IconLibrary iconName="error" size={48} color={Colors.light.error} />
-          <Text style={[styles.errorTitle, { color: themeColors.text }]}>
-            Invalid Reset Link
-          </Text>
+          <IconLibrary iconName="warning" size={48} color={themeColors.error} />
+          <Text style={[styles.errorTitle, { color: themeColors.textPrimary }]}>Invalid Reset Link</Text>
           <Text style={[styles.errorText, { color: themeColors.textSecondary }]}>
-            This password reset link is invalid or has expired. Please request a new password reset.
+            This password reset link is invalid or has expired. Please request a new password reset from the sign-in screen.
           </Text>
           <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: Colors.light.primary }]}
-            onPress={() => router.replace('/(auth)/login')}>
-            <Text style={styles.primaryButtonText}>Go to Login</Text>
+            style={[styles.primaryButton, { backgroundColor: themeColors.primary }]}
+            onPress={() => router.replace('/(auth)/login')}
+            accessibilityRole="button"
+            accessibilityLabel="Go to login">
+            <Text style={[styles.primaryButtonText, { color: themeColors.textPrimary }]}>Go to Login</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   }
 
+  // —— Set new password (from email link) ——
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: themeColors.background }]}
+      style={[styles.container, { backgroundColor: AUTH_FIGMA.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContentSetPassword}
         keyboardShouldPersistTaps="handled">
-        <View style={styles.content}>
-          {/* Logo and Title Section - Matching Login Screen */}
-          <View style={styles.header}>
-            <Image
-              source={require('@/assets/images/icon.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-            <Text style={[styles.title, { color: themeColors.text }]}>Update your password</Text>
-          </View>
+        <View style={styles.scrollContentInner}>
+          <TouchableOpacity
+            style={styles.backLink}
+            onPress={() => router.replace('/(auth)/login')}
+            accessibilityRole="button"
+            accessibilityLabel="Back to sign in">
+            <IconLibrary iconName="chevron-left" size={24} color={themeColors.textPrimary} />
+            <Text style={[styles.backLinkText, { color: themeColors.textPrimary }]}>Back</Text>
+          </TouchableOpacity>
 
-          {/* Card Content - Form */}
-          <View style={styles.cardContent}>
-            <View style={styles.form}>
-              <View style={styles.inputWrapper}>
-                <View style={styles.inputContainer}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Password"
-                    placeholderTextColor="#24262f"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                    autoCapitalize="none"
-                    autoComplete="password-new"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputWrapper}>
-                <View style={styles.inputContainer}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Confirm password"
-                    placeholderTextColor="#24262f"
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry
-                    autoCapitalize="none"
-                    autoComplete="password-new"
-                  />
-                </View>
-              </View>
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <Image
+                source={{ uri: AUTH_LOGO_URI }}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
             </View>
 
-            {/* Reset Password Button */}
-            <View style={styles.buttonsContainer}>
-              <TouchableOpacity
-                style={styles.primaryButton}
-                onPress={handleResetPassword}
-                disabled={loading}>
-                <View style={styles.primaryButtonContent}>
-                  <Text style={styles.primaryButtonText}>
-                    {loading ? 'Updating...' : 'Update password'}
-                  </Text>
-                  <IconLibrary iconName="chevron-right" size={18} color={Colors.light.text} />
-                </View>
-              </TouchableOpacity>
+            <View style={styles.contentIndent}>
+              <Text style={[styles.formTitle, { color: themeColors.textPrimary }]}>Update your password</Text>
+              <View style={styles.formContainer}>
+                <FormTextField
+                  label="New password"
+                  placeholder="At least 6 characters"
+                  value={password}
+                  onChangeText={(t) => { setPassword(t); setPasswordError(''); }}
+                  secureTextEntry
+                  showPasswordToggle
+                  autoCapitalize="none"
+                  autoComplete="password-new"
+                  editable={!loading}
+                  error={!!passwordError}
+                  helperText={passwordError}
+                />
+                <FormTextField
+                  label="Confirm new password"
+                  placeholder="Re-enter your password"
+                  value={confirmPassword}
+                  onChangeText={(t) => { setConfirmPassword(t); setConfirmError(''); }}
+                  secureTextEntry
+                  showPasswordToggle
+                  autoCapitalize="none"
+                  autoComplete="password-new"
+                  editable={!loading}
+                  error={!!confirmError}
+                  helperText={confirmError}
+                />
+                <TouchableOpacity
+                  style={[styles.primaryButton, { backgroundColor: themeColors.primary }]}
+                  onPress={validateAndReset}
+                  disabled={loading}
+                  accessibilityRole="button"
+                  accessibilityLabel="Update password">
+                  <View style={styles.primaryButtonContent}>
+                    {loading ? (
+                      <ActivityIndicator size="small" color={themeColors.textPrimary} />
+                    ) : (
+                      <>
+                        <Text style={[styles.primaryButtonText, { color: themeColors.textPrimary }]}>
+                          Update password
+                        </Text>
+                        <IconLibrary iconName="chevron-right" size={18} color={themeColors.textPrimary} />
+                      </>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
@@ -190,110 +306,100 @@ export default function ResetPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+  scrollView: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: Spacing.lg,
+    paddingBottom: Spacing.lg,
+  },
+  scrollContentSetPassword: {
+    flexGrow: 1,
+    paddingBottom: Spacing.lg,
+  },
+  scrollContentInner: {
+    flexGrow: 1,
+    paddingTop: Spacing.xl * 2, // 64px
   },
   content: {
     width: '100%',
-    maxWidth: 439, // Matching login screen width
-    alignSelf: 'center',
+    maxWidth: 439,
+    alignSelf: 'flex-start',
   },
   header: {
+    marginTop: Spacing.xl, // 32px above logo (token)
+    marginBottom: Spacing.md,
+    width: '100%',
+  },
+  logoImage: {
+    width: 200,
+    maxWidth: '100%',
+    height: 56,
+    alignSelf: 'flex-start',
+  },
+  contentIndent: {
+    width: '100%',
+    paddingLeft: Spacing.xl,
+    paddingRight: Spacing.xl,
+  },
+  backLink: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    width: '100%',
+    paddingLeft: Spacing.md,
+    marginBottom: Spacing.md,
+    gap: Spacing.xs,
   },
-  logo: {
-    width: 124,
-    height: 50,
-    marginBottom: Spacing.sm,
-  },
-  title: {
+  backLinkText: {
     fontFamily: Typography.fontFamily,
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.regular,
-    color: Colors.light.text, // #1f5661
-    lineHeight: 24,
-    letterSpacing: 0.15,
-    width: '100%',
-    textAlign: 'left',
-    marginBottom: Spacing.xs,
   },
-  subtitle: {
+  instructionText: {
     fontFamily: Typography.fontFamily,
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.regular,
-    color: Colors.light.textSecondary,
-    lineHeight: 24,
-    letterSpacing: 0.15,
-    width: '100%',
-    textAlign: 'left',
-  },
-  cardContent: {
-    gap: Spacing.md,
-    padding: Spacing.md,
     marginBottom: Spacing.md,
   },
-  form: {
-    gap: Spacing.md,
-  },
-  inputWrapper: {
-    width: '100%',
-  },
-  inputContainer: {
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.23)',
-    borderRadius: 9999, // Full rounded (pill shape) matching login
-    paddingHorizontal: 32, // Matching login screen
-    paddingVertical: 16,
-    backgroundColor: Colors.light.surface,
-    minHeight: 56,
-    justifyContent: 'center',
-  },
-  input: {
+  formTitle: {
     fontFamily: Typography.fontFamily,
-    fontSize: 16,
-    fontWeight: '400',
-    lineHeight: 24,
-    letterSpacing: 0.15,
-    color: '#24262f', // Text secondary color from Figma
-    flex: 1,
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.regular,
+    marginBottom: Spacing.md,
   },
-  buttonsContainer: {
-    gap: 0,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+  formContainer: {
+    marginBottom: Spacing.md,
   },
   primaryButton: {
-    backgroundColor: Colors.light.primary, // #69f0f0
-    borderRadius: 32,
-    paddingVertical: 8,
-    paddingHorizontal: 22,
+    borderRadius: BorderRadius.full,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
+    minHeight: 48,
+    marginTop: Spacing.md,
   },
   primaryButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    gap: Spacing.sm,
   },
   primaryButtonText: {
     fontFamily: Typography.fontFamily,
-    fontSize: 15, // Matching login button
-    fontWeight: Typography.fontWeight.medium, // 500 (Medium)
-    color: Colors.light.text, // #1f5661
-    lineHeight: 26,
-    letterSpacing: 0.46,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  tempLink: {
+    marginTop: Spacing.md,
+    alignSelf: 'flex-start',
+  },
+  tempLinkText: {
+    fontFamily: Typography.fontFamily,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.regular,
+    textDecorationLine: 'underline',
   },
   errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.xl,
   },
@@ -311,5 +417,3 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
 });
-
-

@@ -102,6 +102,8 @@ const iconNameMap: Record<string, string> = {
   'star-outline': 'star_border',
   'chat-bubble-outline': 'chat_bubble_outline',
   'refresh': 'refresh',
+  'visibility': 'visibility',
+  'visibility_off': 'visibility_off',
 };
 
 /**

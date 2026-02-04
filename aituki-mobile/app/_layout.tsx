@@ -6,11 +6,13 @@
 
 import { useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
+import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { StatusBar as RNStatusBar, Platform } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -30,12 +32,16 @@ function AppWithSplash() {
   const { loading } = useAuth();
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
 
+  const [iconFontsLoaded] = useFonts({
+    ...MaterialCommunityIcons.font,
+  });
+
   useEffect(() => {
     const t = setTimeout(() => setMinTimeElapsed(true), LOADING_MIN_DISPLAY_MS);
     return () => clearTimeout(t);
   }, []);
 
-  const showingLoading = loading || !minTimeElapsed;
+  const showingLoading = loading || !minTimeElapsed || !iconFontsLoaded;
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const paperTheme = isDark ? PaperThemeDark : PaperThemeLight;

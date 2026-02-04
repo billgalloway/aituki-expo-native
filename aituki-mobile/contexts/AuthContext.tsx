@@ -4,7 +4,8 @@ import { supabase } from '@/services/supabase';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
-import { syncOAuthUserToProfile, isOAuthUser } from '@/services/oauthProfileSync';
+import { syncOAuthUserToProfile, syncEmailSignupMetadataToProfile, isOAuthUser } from '@/services/oauthProfileSync';
+import { createUserProfile } from '@/services/userProfile';
 
 // Complete OAuth session when browser closes
 WebBrowser.maybeCompleteAuthSession();
@@ -14,7 +15,11 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (
+    email: string,
+    password: string,
+    metadata?: { first_name?: string; last_name?: string; mobile_number?: string }
+  ) => Promise<{ error: Error | null }>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   signInWithApple: () => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
@@ -62,14 +67,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (session && newUser) {
         // User is logged in
-        // Auto-sync OAuth provider data to profile (if OAuth user)
         if (isOAuthUser(newUser)) {
-          // Sync in background (don't block navigation)
           syncOAuthUserToProfile(newUser).catch((error) => {
             console.error('⚠️ Failed to sync OAuth profile (non-blocking):', error);
           });
+        } else {
+          // Email signup: ensure profile exists from user_metadata (e.g. after email confirmation)
+          syncEmailSignupMetadataToProfile(newUser).catch((error) => {
+            console.error('⚠️ Failed to sync email signup profile (non-blocking):', error);
+          });
         }
-        
+
         // Navigate to main app
         router.replace('/(tabs)');
       } else {
@@ -93,16 +101,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    metadata?: { first_name?: string; last_name?: string; mobile_number?: string }
+  ) => {
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: `${Constants.expoConfig?.scheme || 'aitukinative'}://auth/callback`,
+          data: metadata ?? undefined,
         },
       });
-      return { error };
+      if (error) return { error };
+
+      // When we get a session (e.g. email confirmation disabled), create profile immediately
+      if (data.session && data.user && metadata) {
+        const profileEmail = data.user.email ?? email;
+        createUserProfile({
+          user_id: data.user.id,
+          email: profileEmail,
+          first_name: metadata.first_name ?? null,
+          last_name: metadata.last_name ?? null,
+          mobile_number: metadata.mobile_number ?? null,
+        }).catch((err) => console.error('Failed to create profile after signup:', err));
+      }
+      return { error: null };
     } catch (error) {
       return { error: error as Error };
     }
@@ -110,12 +136,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${Constants.expoConfig?.scheme || 'aitukinative'}://auth/reset-password`,
+      const scheme = Constants.expoConfig?.scheme || 'aitukinative';
+      const redirectTo = `${scheme}://auth/reset-password`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo,
       });
-      return { error };
+      if (error) {
+        console.warn('Reset password error:', error.message, error.status);
+        return { error: new Error(error.message) };
+      }
+      return { error: null };
     } catch (error) {
-      return { error: error as Error };
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn('Reset password exception:', message);
+      return { error: new Error(message) };
     }
   };
 

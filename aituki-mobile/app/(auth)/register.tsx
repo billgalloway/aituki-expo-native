@@ -1,6 +1,7 @@
 /**
  * Registration Screen
- * Email/password registration with Apple and Google OAuth options
+ * Same layout as Login: logo at top, back button, 64px top space, 32px content indent.
+ * Light theme per config/FIGMA_AUTH_COMPONENTS.md and constants/authTheme.
  */
 
 import React, { useState } from 'react';
@@ -8,47 +9,56 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
+import { AUTH_FIGMA, AUTH_LOGO_URI } from '@/constants/authTheme';
 import IconLibrary from '@/components/IconLibrary';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import FormTextField from '@/components/FormTextField';
 import { router } from 'expo-router';
 
-export default function RegisterScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { signUp, signInWithApple, signInWithGoogle } = useAuth();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const themeColors = isDark ? Colors.dark : Colors.light;
+const PASSWORD_MIN_LENGTH = 8;
 
-  const handleEmailSignUp = async () => {
+export default function RegisterScreen() {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [password, setPassword] = useState('');
+  const [repeatPassword, setRepeatPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [repeatError, setRepeatError] = useState('');
+  const { signUp } = useAuth();
+  const themeColors = Colors.light;
+
+  const handleRegister = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password');
+      Alert.alert('Error', 'Please enter email and password');
       return;
     }
-
-    if (password !== confirmPassword) {
+    if (password !== repeatPassword) {
       Alert.alert('Error', 'Passwords do not match');
       return;
     }
-
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      Alert.alert('Error', `Password must be at least ${PASSWORD_MIN_LENGTH} characters`);
       return;
     }
 
     setLoading(true);
-    const { error } = await signUp(email, password);
+    const { error } = await signUp(email, password, {
+      first_name: firstName.trim() || undefined,
+      last_name: lastName.trim() || undefined,
+      mobile_number: phoneNumber.trim() || undefined,
+    });
     setLoading(false);
 
     if (error) {
@@ -62,134 +72,162 @@ export default function RegisterScreen() {
     }
   };
 
-  const handleAppleLogin = async () => {
-    setLoading(true);
-    const { error } = await signInWithApple();
-    setLoading(false);
-
-    if (error) {
-      Alert.alert('Apple Sign-In Failed', error.message);
+  const validateAndSignUp = () => {
+    setPasswordError('');
+    setRepeatError('');
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter email and password');
+      return;
     }
-  };
-
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    const { error } = await signInWithGoogle();
-    setLoading(false);
-
-    if (error) {
-      Alert.alert('Google Sign-In Failed', error.message);
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      setPasswordError(`Must be at least ${PASSWORD_MIN_LENGTH} characters`);
+      return;
     }
+    if (password !== repeatPassword) {
+      setRepeatError('Passwords do not match');
+      return;
+    }
+    handleRegister();
   };
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: AUTH_FIGMA.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled">
-        <View style={styles.content}>
-          {/* Logo/App Name */}
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: themeColors.text }]}>Create Account</Text>
-            <Text style={[styles.subtitle, { color: themeColors.textSecondary }]}>
-              Sign up to get started
-            </Text>
-          </View>
+        <View style={styles.scrollContentInner}>
+          <TouchableOpacity
+            style={styles.backLink}
+            onPress={() => router.replace('/(auth)/login')}
+            accessibilityRole="button"
+            accessibilityLabel="Back to login">
+            <IconLibrary iconName="chevron-left" size={24} color={themeColors.textPrimary} />
+            <Text style={[styles.backLinkText, { color: themeColors.textPrimary }]}>Back</Text>
+          </TouchableOpacity>
 
-          {/* Email/Password Form */}
-          <View style={styles.form}>
-            <View style={styles.inputContainer}>
-              <IconLibrary iconName="email" size={20} color={themeColors.textSecondary} />
-              <TextInput
-                style={[styles.input, { color: themeColors.text }]}
-                placeholder="Email"
-                placeholderTextColor={themeColors.textSecondary}
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                autoComplete="email"
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <Image
+                source={{ uri: AUTH_LOGO_URI }}
+                style={styles.logoImage}
+                resizeMode="contain"
               />
             </View>
 
-            <View style={styles.inputContainer}>
-              <IconLibrary iconName="lock" size={20} color={themeColors.textSecondary} />
-              <TextInput
-                style={[styles.input, { color: themeColors.text }]}
-                placeholder="Password"
-                placeholderTextColor={themeColors.textSecondary}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoCapitalize="none"
-                autoComplete="password-new"
-              />
+            <View style={styles.contentIndent}>
+              <Text style={[styles.formTitle, { color: themeColors.textPrimary }]}>Register with aiTuki</Text>
+
+              <View style={styles.formContainer}>
+                <FormTextField
+                  label="First name"
+                  placeholder="Value"
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  autoCapitalize="words"
+                  autoComplete="name-given"
+                  editable={!loading}
+                />
+                <FormTextField
+                  label="Last name"
+                  placeholder="Value"
+                  value={lastName}
+                  onChangeText={setLastName}
+                  autoCapitalize="words"
+                  autoComplete="name-family"
+                  editable={!loading}
+                />
+                <FormTextField
+                  label="Email"
+                  placeholder="Value"
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  autoComplete="email"
+                  editable={!loading}
+                />
+
+                <Text style={[styles.sectionLabel, { color: themeColors.textSecondary }]}>Required for account registration</Text>
+
+                <FormTextField
+                  label="Phone number"
+                  placeholder="Value"
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  keyboardType="phone-pad"
+                  autoComplete="tel"
+                  editable={!loading}
+                />
+
+                <Text style={[styles.sectionLabel, { color: themeColors.textSecondary }]}>Required for app alerts</Text>
+
+                <FormTextField
+                  label="Password"
+                  placeholder="Value"
+                  value={password}
+                  onChangeText={(t) => { setPassword(t); setPasswordError(''); }}
+                  secureTextEntry
+                  showPasswordToggle
+                  autoCapitalize="none"
+                  autoComplete="password-new"
+                  editable={!loading}
+                  error={!!passwordError}
+                  helperText={passwordError || 'Must be at least 8 characters'}
+                />
+                <FormTextField
+                  label="Repeat password"
+                  placeholder="Value"
+                  value={repeatPassword}
+                  onChangeText={(t) => { setRepeatPassword(t); setRepeatError(''); }}
+                  secureTextEntry
+                  showPasswordToggle
+                  autoCapitalize="none"
+                  autoComplete="password-new"
+                  editable={!loading}
+                  error={!!repeatError}
+                  helperText={repeatError}
+                />
+
+                <TouchableOpacity
+                  style={[styles.primaryButton, { backgroundColor: themeColors.primary }]}
+                  onPress={validateAndSignUp}
+                  disabled={loading}
+                  accessibilityRole="button"
+                  accessibilityLabel="Register with AiTuki">
+                  {loading ? (
+                    <ActivityIndicator size="small" color={themeColors.textPrimary} />
+                  ) : (
+                    <View style={styles.primaryButtonContent}>
+                      <Text style={[styles.primaryButtonText, { color: themeColors.textPrimary }]}>Register with AiTuki</Text>
+                      <IconLibrary iconName="chevron-right" size={18} color={themeColors.textPrimary} />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              <View style={[styles.signInRow, { marginTop: Spacing.lg }]}>
+                <Text style={[styles.signInText, { color: themeColors.textPrimary }]}>Already have an aiTuki account? </Text>
+                <TouchableOpacity
+                  onPress={() => router.replace('/(auth)/login')}
+                  accessibilityRole="link"
+                  accessibilityLabel="Login">
+                  <Text style={[styles.signInLink, { color: themeColors.textPrimary }]}>Login</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.legalBlock}>
+                <Text style={[styles.legalText, { color: themeColors.textSecondary }]}>
+                  By proceeding to create an account you agree to the aiTuki{' '}
+                  <Text style={[styles.legalLink, { color: themeColors.textPrimary }]} onPress={() => router.push('/data-privacy')}>Privacy policy</Text>.
+                  Read our{' '}
+                  <Text style={[styles.legalLink, { color: themeColors.textPrimary }]} onPress={() => router.push('/data-privacy')}>Terms & conditions</Text>
+                  {' '}for details on how we collect and handle your personal details.
+                </Text>
+              </View>
             </View>
-
-            <View style={styles.inputContainer}>
-              <IconLibrary iconName="lock" size={20} color={themeColors.textSecondary} />
-              <TextInput
-                style={[styles.input, { color: themeColors.text }]}
-                placeholder="Confirm Password"
-                placeholderTextColor={themeColors.textSecondary}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-                autoCapitalize="none"
-                autoComplete="password-new"
-              />
-            </View>
-
-            <TouchableOpacity
-              style={[styles.primaryButton, { backgroundColor: Colors.light.primary }]}
-              onPress={handleEmailSignUp}
-              disabled={loading}>
-              <Text style={styles.primaryButtonText}>
-                {loading ? 'Creating Account...' : 'Sign Up'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Divider */}
-          <View style={styles.divider}>
-            <View style={[styles.dividerLine, { backgroundColor: themeColors.divider }]} />
-            <Text style={[styles.dividerText, { color: themeColors.textSecondary }]}>OR</Text>
-            <View style={[styles.dividerLine, { backgroundColor: themeColors.divider }]} />
-          </View>
-
-          {/* OAuth Buttons */}
-          <View style={styles.oauthContainer}>
-            <TouchableOpacity
-              style={[styles.oauthButton, { borderColor: themeColors.border }]}
-              onPress={handleAppleLogin}
-              disabled={loading}>
-              <IconLibrary iconName="apple" size={24} color={themeColors.text} />
-              <Text style={[styles.oauthButtonText, { color: themeColors.text }]}>
-                Continue with Apple
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.oauthButton, { borderColor: themeColors.border }]}
-              onPress={handleGoogleLogin}
-              disabled={loading}>
-              <IconLibrary iconName="google" size={24} color={themeColors.text} />
-              <Text style={[styles.oauthButtonText, { color: themeColors.text }]}>
-                Continue with Google
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Sign In Link */}
-          <View style={styles.signInContainer}>
-            <Text style={[styles.signInText, { color: themeColors.textSecondary }]}>
-              Already have an account?{' '}
-            </Text>
-            <TouchableOpacity onPress={() => router.replace('/(auth)/login')}>
-              <Text style={[styles.signInLink, { color: Colors.light.primary }]}>Sign In</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -198,112 +236,145 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.light.background,
-  },
+  container: { flex: 1 },
+  scrollView: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: Spacing.lg,
+    paddingBottom: Spacing.lg,
+  },
+  scrollContentInner: {
+    flexGrow: 1,
+    paddingTop: Spacing.xl * 2, // 64px above back button (token)
   },
   content: {
     width: '100%',
-    maxWidth: 400,
-    alignSelf: 'center',
+    maxWidth: 439,
+    alignSelf: 'flex-start',
   },
   header: {
-    alignItems: 'center',
-    marginBottom: Spacing.xl,
+    marginTop: Spacing.xl, // 32px above logo (token)
+    marginBottom: Spacing.md,
+    width: '100%',
   },
-  title: {
-    fontFamily: Typography.fontFamily,
-    fontSize: Typography.fontSize.xl * 1.5,
-    fontWeight: Typography.fontWeight.bold,
-    marginBottom: Spacing.xs,
+  logoImage: {
+    width: 200,
+    maxWidth: '100%',
+    height: 56,
+    alignSelf: 'flex-start',
   },
-  subtitle: {
-    fontFamily: Typography.fontFamily,
-    fontSize: Typography.fontSize.base,
+  contentIndent: {
+    width: '100%',
+    paddingLeft: Spacing.xl,  // 32px content margin (form only; back + logo range left)
+    paddingRight: Spacing.xl,
   },
-  form: {
-    marginBottom: Spacing.lg,
-  },
-  inputContainer: {
+  backLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
+    paddingLeft: Spacing.md, // 16px
     marginBottom: Spacing.md,
-    backgroundColor: Colors.light.surface,
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
-  input: {
-    flex: 1,
+  backLinkText: {
     fontFamily: Typography.fontFamily,
     fontSize: Typography.fontSize.base,
-    paddingVertical: Spacing.md,
+    fontWeight: Typography.fontWeight.regular,
+  },
+  formTitle: {
+    fontFamily: Typography.fontFamily,
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.regular,
+    marginBottom: Spacing.md,
+  },
+  formContainer: {
+    marginBottom: Spacing.md,
+  },
+  sectionLabel: {
+    fontFamily: Typography.fontFamily,
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.regular,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.sm,
   },
   primaryButton: {
     borderRadius: BorderRadius.full,
     paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     alignItems: 'center',
-    marginTop: Spacing.sm,
+    justifyContent: 'center',
+    minHeight: 48,
+    marginTop: Spacing.md,
+  },
+  primaryButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   primaryButtonText: {
     fontFamily: Typography.fontFamily,
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.medium,
-    color: Colors.light.text,
   },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: Spacing.lg,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
+  orText: {
     fontFamily: Typography.fontFamily,
     fontSize: Typography.fontSize.sm,
-    marginHorizontal: Spacing.md,
+    fontWeight: Typography.fontWeight.medium,
+    textAlign: 'center',
+    marginTop: 0,
+    marginBottom: Spacing.md,
+    textTransform: 'uppercase',
   },
-  oauthContainer: {
-    gap: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  oauthButton: {
-    flexDirection: 'row',
+  socialButton: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.round,
+    minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    gap: Spacing.sm,
-    backgroundColor: Colors.light.surface,
+    marginBottom: Spacing.md,
   },
-  oauthButtonText: {
+  socialButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  socialButtonIcon: {
+    width: 22,
+    height: 22,
+  },
+  socialButtonText: {
     fontFamily: Typography.fontFamily,
     fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium,
+    fontWeight: Typography.fontWeight.regular,
   },
-  signInContainer: {
+  signInRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: Spacing.lg,
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    marginTop: Spacing.sm,
   },
   signInText: {
     fontFamily: Typography.fontFamily,
     fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.regular,
   },
   signInLink: {
     fontFamily: Typography.fontFamily,
     fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium,
+    fontWeight: Typography.fontWeight.bold,
+    textDecorationLine: 'underline',
+  },
+  legalBlock: {
+    marginTop: Spacing.lg,
+  },
+  legalText: {
+    fontFamily: Typography.fontFamily,
+    fontSize: Typography.fontSize.xs,
+    lineHeight: 18,
+    fontWeight: Typography.fontWeight.regular,
+  },
+  legalLink: {
+    textDecorationLine: 'underline',
+    fontWeight: Typography.fontWeight.bold,
   },
 });
-

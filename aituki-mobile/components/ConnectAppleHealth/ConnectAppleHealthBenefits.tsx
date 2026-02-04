@@ -20,7 +20,7 @@ export default function ConnectAppleHealthBenefits() {
     <View style={styles.container}>
       {BENEFITS.map((text, index) => (
         <View key={index} style={styles.item}>
-          <IconLibrary iconName="check" size={20} color={Colors.light.primary} />
+          <IconLibrary iconName="check" size={20} color={Colors.light.textPrimary} />
           <Text style={styles.text}>{text}</Text>
         </View>
       ))}
@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
   },
   text: {
     ...Typography.variants.body1,
-    color: Colors.light.text,
+    color: Colors.light.textPrimary,
     marginLeft: Spacing.sm,
     flex: 1,
   },

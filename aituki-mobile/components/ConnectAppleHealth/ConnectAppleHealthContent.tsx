@@ -8,7 +8,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Typography, Spacing } from '@/constants/theme';
 import ConnectAppleHealthInfoNote from './ConnectAppleHealthInfoNote';
 
-const TITLE = 'Connect Apple Health';
+const TITLE = 'Connect to Apple Health';
 const DESCRIPTION =
   'aiTuki uses this data to generate AI powered help and advice. It can create customised goals that are tailored specifically to you.';
 

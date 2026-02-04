@@ -73,6 +73,10 @@ Email confirmation and password reset emails are not being sent from Supabase.
 
 ## Troubleshooting
 
+### "Error sending recovery email" (password reset)
+
+This means Supabase could not send the reset email. **Fix:** Configure custom SMTP (Step 2 above). The default Supabase mail often fails with this error. Go to **Settings** → **Auth** → **SMTP Settings**, enable Custom SMTP, and enter your provider credentials (e.g. SendGrid, Mailgun).
+
 ### Emails Still Not Sending?
 
 1. **Check Supabase Email Logs**:
