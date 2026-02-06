@@ -12,6 +12,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.aituki.mobile",
       "buildNumber": "22",
+      "deploymentTarget": "16.0",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSHealthShareUsageDescription": "AiTuki needs access to your health data to provide personalized insights and track your wellbeing across physical, emotional, mental, and energy pillars.",
