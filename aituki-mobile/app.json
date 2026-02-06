@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.aituki.mobile",
-      "buildNumber": "20",
+      "buildNumber": "22",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSHealthShareUsageDescription": "AiTuki needs access to your health data to provide personalized insights and track your wellbeing across physical, emotional, mental, and energy pillars.",
@@ -20,7 +20,7 @@
     },
     "android": {
       "package": "com.aituki.mobile",
-      "versionCode": 17,
+      "versionCode": 22,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -39,6 +39,12 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-navigation-bar",
+        {
+          "backgroundColor": "#69f0f0"
+        }
+      ],
       [
         "expo-splash-screen",
         {

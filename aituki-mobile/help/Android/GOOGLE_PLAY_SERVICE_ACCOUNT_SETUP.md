@@ -107,8 +107,9 @@ Before proceeding, make sure your Google Play Developer account is **fully confi
    
    **Option D: Search for it:**
    - Use the search bar at the top of Play Console
-   - Type "API access" or "API"
+   - Type "API access" or "API"ççç
    - It should appear in the search results
+hy would my build 22 not be showing in tesstflight
 
 3. **If you still can't find it, try this:**
    - Make sure you're on the **Developer account level** (not inside a specific app)

@@ -26,7 +26,8 @@ export default function PhysicalScoreChart({
   const strokeWidth = 8;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const progress = percentage / 100;
+  const safePercentage = typeof percentage === 'number' && !Number.isNaN(percentage) ? percentage : 56;
+  const progress = Math.max(0, Math.min(1, safePercentage / 100));
   const strokeDashoffset = circumference * (1 - progress);
 
   return (
@@ -77,7 +78,7 @@ export default function PhysicalScoreChart({
           {/* Center content */}
           <View style={styles.centerContent}>
             <Text style={styles.centerLabel}>{label}</Text>
-            <Text style={styles.centerPercentage}>{percentage}%</Text>
+            <Text style={styles.centerPercentage}>{safePercentage}%</Text>
           </View>
         </View>
       </View>

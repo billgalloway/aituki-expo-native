@@ -7,6 +7,26 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
+// HealthKit type identifiers (Apple's HKQuantityTypeIdentifier / HKCategoryTypeIdentifier strings).
+// Defined locally so we never import @kingstinct/react-native-healthkit on Android.
+const HK = {
+  quantity: {
+    stepCount: 'HKQuantityTypeIdentifierStepCount',
+    heartRate: 'HKQuantityTypeIdentifierHeartRate',
+    activeEnergyBurned: 'HKQuantityTypeIdentifierActiveEnergyBurned',
+    distanceWalkingRunning: 'HKQuantityTypeIdentifierDistanceWalkingRunning',
+    heartRateVariabilitySDNN: 'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
+    respiratoryRate: 'HKQuantityTypeIdentifierRespiratoryRate',
+    basalEnergyBurned: 'HKQuantityTypeIdentifierBasalEnergyBurned',
+    bodyMass: 'HKQuantityTypeIdentifierBodyMass',
+    vo2Max: 'HKQuantityTypeIdentifierVO2Max',
+  },
+  category: {
+    sleepAnalysis: 'HKCategoryTypeIdentifierSleepAnalysis',
+    mindfulSession: 'HKCategoryTypeIdentifierMindfulSession',
+  },
+} as const;
+
 // HealthKit types mapping
 export enum HealthDataType {
   // Physical Pillar
@@ -96,13 +116,13 @@ const initHealthKit = async () => {
       console.warn('HealthKit module is null or undefined');
       return false;
     }
-    
-    // The library uses named exports
-    HealthKitModule = healthKitModule;
+
+    // Library may export default (Healthkit object) or be the object itself
+    HealthKitModule = healthKitModule?.default ?? healthKitModule;
     isInitialized = true;
-    
+
     console.log('HealthKit module initialized successfully');
-    console.log('Available methods:', Object.keys(HealthKitModule));
+    console.log('Available methods:', Object.keys(HealthKitModule || {}));
     return true;
   } catch (error) {
     console.error('Failed to load HealthKit module:', error);
@@ -127,15 +147,16 @@ export async function isHealthKitAvailable(): Promise<boolean> {
   }
 
   try {
-    // The library uses isHealthDataAvailable() method
-    const checkMethod = HealthKitModule.isHealthDataAvailable || HealthKitModule.isAvailable;
-    
+    // @kingstinct/react-native-healthkit exposes isHealthDataAvailable on default export
+    const checkMethod =
+      HealthKitModule?.isHealthDataAvailable ?? HealthKitModule?.isAvailable;
+
     if (!checkMethod || typeof checkMethod !== 'function') {
       console.error('HealthKit availability check method not found');
-      console.log('Available methods:', Object.keys(HealthKitModule));
+      console.log('Available methods:', Object.keys(HealthKitModule || {}));
       return false;
     }
-    
+
     const available = await checkMethod();
     console.log('HealthKit availability check returned:', available);
     return available === true;
@@ -168,34 +189,28 @@ export async function requestHealthKitPermissions(): Promise<PermissionStatus> {
       return { granted: false, denied: false, unavailable: true };
     }
 
-    // Use QuantityTypeIdentifier enum if available, otherwise use strings
-    const QuantityTypeIdentifier = HealthKitModule.QuantityTypeIdentifier || {};
-    const CategoryTypeIdentifier = HealthKitModule.CategoryTypeIdentifier || {};
+    // Library expects (read: array of type ids, write?: array of type ids)
+    const readTypes: string[] = [
+      HK.quantity.stepCount,
+      HK.quantity.activeEnergyBurned,
+      HK.quantity.distanceWalkingRunning,
+      HK.quantity.heartRate,
+      HK.quantity.heartRateVariabilitySDNN,
+      HK.quantity.respiratoryRate,
+      HK.quantity.basalEnergyBurned,
+      HK.quantity.bodyMass,
+      HK.quantity.vo2Max,
+      HK.category.sleepAnalysis,
+      HK.category.mindfulSession,
+      'HKWorkoutTypeIdentifier',
+    ];
 
-    // Define permissions using the library's format
-    const permissions = {
-      toRead: [
-        QuantityTypeIdentifier.stepCount || 'HKQuantityTypeIdentifierStepCount',
-        QuantityTypeIdentifier.activeEnergyBurned || 'HKQuantityTypeIdentifierActiveEnergyBurned',
-        QuantityTypeIdentifier.distanceWalkingRunning || 'HKQuantityTypeIdentifierDistanceWalkingRunning',
-        QuantityTypeIdentifier.heartRate || 'HKQuantityTypeIdentifierHeartRate',
-        QuantityTypeIdentifier.heartRateVariabilitySDNN || 'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
-        QuantityTypeIdentifier.respiratoryRate || 'HKQuantityTypeIdentifierRespiratoryRate',
-        QuantityTypeIdentifier.basalEnergyBurned || 'HKQuantityTypeIdentifierBasalEnergyBurned',
-        QuantityTypeIdentifier.bodyMass || 'HKQuantityTypeIdentifierBodyMass',
-        QuantityTypeIdentifier.vo2Max || 'HKQuantityTypeIdentifierVO2Max',
-        CategoryTypeIdentifier.sleepAnalysis || 'HKCategoryTypeIdentifierSleepAnalysis',
-        CategoryTypeIdentifier.mindfulSession || 'HKCategoryTypeIdentifierMindfulSession',
-        'HKWorkoutTypeIdentifier', // Workout type
-      ],
-      toWrite: [], // We're only reading data for now
-    };
+    const writeTypes: string[] = []; // Read-only for now
 
     console.log('Requesting HealthKit permissions...');
-    const result = await requestAuth(permissions);
-    console.log('HealthKit permission result:', JSON.stringify(result, null, 2));
-    
-    // Handle response format - library returns { status: 'authorized' | 'denied' | 'notDetermined' }
+    const result = await requestAuth(readTypes, writeTypes);
+    console.log('HealthKit permission result:', result);
+    // Library returns boolean (true = user completed the sheet; does not mean all granted)
     if (typeof result === 'object' && result !== null) {
       const isAuthorized = result.status === 'authorized' || result.authorized === true;
       const isDenied = result.status === 'denied' || result.denied === true;
@@ -236,22 +251,18 @@ export async function getStepCount(
   }
 
   try {
-    const samples = await HealthKitModule.getQuantitySamples({
-      type: 'StepCount',
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      unit: 'count',
-    });
+    const { samples } = await HealthKitModule.queryQuantitySamples(
+      HK.quantity.stepCount,
+      { from: startDate, to: endDate, unit: 'count' }
+    );
 
     return samples.map((sample: any) => ({
-      value: sample.quantity || sample.value || 0,
+      value: sample.quantity ?? 0,
       unit: 'count',
-      startDate: new Date(sample.startDate),
-      endDate: sample.endDate ? new Date(sample.endDate) : undefined,
-      source: sample.sourceName || 'Apple Health',
-      metadata: {
-        device: sample.device,
-      },
+      startDate: sample.startDate,
+      endDate: sample.endDate,
+      source: sample.sourceRevision?.source?.name ?? 'Apple Health',
+      metadata: { device: sample.device },
     }));
   } catch (error) {
     console.error('Error fetching step count:', error);
@@ -275,22 +286,18 @@ export async function getHeartRate(
   }
 
   try {
-    const samples = await HealthKitModule.getQuantitySamples({
-      type: 'HeartRate',
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      unit: 'bpm',
-    });
+    const { samples } = await HealthKitModule.queryQuantitySamples(
+      HK.quantity.heartRate,
+      { from: startDate, to: endDate, unit: 'count/min' }
+    );
 
     return samples.map((sample: any) => ({
-      value: sample.quantity || sample.value || 0,
+      value: sample.quantity ?? 0,
       unit: 'bpm',
-      startDate: new Date(sample.startDate),
-      endDate: sample.endDate ? new Date(sample.endDate) : undefined,
-      source: sample.sourceName || 'Apple Health',
-      metadata: {
-        device: sample.device,
-      },
+      startDate: sample.startDate,
+      endDate: sample.endDate,
+      source: sample.sourceRevision?.source?.name ?? 'Apple Health',
+      metadata: { device: sample.device },
     }));
   } catch (error) {
     console.error('Error fetching heart rate:', error);
@@ -314,22 +321,18 @@ export async function getActiveEnergy(
   }
 
   try {
-    const samples = await HealthKitModule.getQuantitySamples({
-      type: 'ActiveEnergyBurned',
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      unit: 'kcal',
-    });
+    const { samples } = await HealthKitModule.queryQuantitySamples(
+      HK.quantity.activeEnergyBurned,
+      { from: startDate, to: endDate, unit: 'kcal' }
+    );
 
     return samples.map((sample: any) => ({
-      value: sample.quantity || sample.value || 0,
+      value: sample.quantity ?? 0,
       unit: 'kcal',
-      startDate: new Date(sample.startDate),
-      endDate: sample.endDate ? new Date(sample.endDate) : undefined,
-      source: sample.sourceName || 'Apple Health',
-      metadata: {
-        device: sample.device,
-      },
+      startDate: sample.startDate,
+      endDate: sample.endDate,
+      source: sample.sourceRevision?.source?.name ?? 'Apple Health',
+      metadata: { device: sample.device },
     }));
   } catch (error) {
     console.error('Error fetching active energy:', error);
@@ -353,15 +356,14 @@ export async function getSleepAnalysis(
   }
 
   try {
-    const samples = await HealthKitModule.getCategorySamples({
-      type: 'SleepAnalysis',
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-    });
+    const { samples } = await HealthKitModule.queryCategorySamples(
+      HK.category.sleepAnalysis,
+      { from: startDate, to: endDate }
+    );
 
     return samples.map((sample: any) => {
-      const start = new Date(sample.startDate);
-      const end = new Date(sample.endDate);
+      const start = sample.startDate;
+      const end = sample.endDate;
       const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
 
       return {
@@ -369,11 +371,8 @@ export async function getSleepAnalysis(
         unit: 'hour',
         startDate: start,
         endDate: end,
-        source: sample.sourceName || 'Apple Health',
-        metadata: {
-          value: sample.value, // Sleep type (asleep, inBed, etc.)
-          device: sample.device,
-        },
+        source: sample.sourceRevision?.source?.name ?? 'Apple Health',
+        metadata: { value: sample.value, device: sample.device },
       };
     });
   } catch (error) {
@@ -398,22 +397,18 @@ export async function getDistanceWalkingRunning(
   }
 
   try {
-    const samples = await HealthKitModule.getQuantitySamples({
-      type: 'DistanceWalkingRunning',
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      unit: 'meter',
-    });
+    const { samples } = await HealthKitModule.queryQuantitySamples(
+      HK.quantity.distanceWalkingRunning,
+      { from: startDate, to: endDate, unit: 'm' }
+    );
 
     return samples.map((sample: any) => ({
-      value: sample.quantity || sample.value || 0,
+      value: sample.quantity ?? 0,
       unit: 'meter',
-      startDate: new Date(sample.startDate),
-      endDate: sample.endDate ? new Date(sample.endDate) : undefined,
-      source: sample.sourceName || 'Apple Health',
-      metadata: {
-        device: sample.device,
-      },
+      startDate: sample.startDate,
+      endDate: sample.endDate,
+      source: sample.sourceRevision?.source?.name ?? 'Apple Health',
+      metadata: { device: sample.device },
     }));
   } catch (error) {
     console.error('Error fetching distance walking/running:', error);
@@ -437,14 +432,14 @@ export async function getWorkouts(
   }
 
   try {
-    const workouts = await HealthKitModule.getWorkouts({
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
+    const workouts = await HealthKitModule.queryWorkouts({
+      from: startDate,
+      to: endDate,
     });
 
     return workouts.map((workout: any) => {
-      const start = new Date(workout.startDate);
-      const end = new Date(workout.endDate);
+      const start = workout.startDate;
+      const end = workout.endDate;
       const duration = (end.getTime() - start.getTime()) / (1000 * 60); // minutes
 
       return {
@@ -452,9 +447,9 @@ export async function getWorkouts(
         unit: 'minute',
         startDate: start,
         endDate: end,
-        source: workout.sourceName || 'Apple Health',
+        source: workout.sourceRevision?.source?.name ?? 'Apple Health',
         metadata: {
-          workoutType: workout.workoutType,
+          workoutType: workout.workoutActivityType,
           totalEnergyBurned: workout.totalEnergyBurned,
           totalDistance: workout.totalDistance,
           device: workout.device,
@@ -483,22 +478,18 @@ export async function getHeartRateVariability(
   }
 
   try {
-    const samples = await HealthKitModule.getQuantitySamples({
-      type: 'HeartRateVariabilitySDNN',
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      unit: 'ms',
-    });
+    const { samples } = await HealthKitModule.queryQuantitySamples(
+      HK.quantity.heartRateVariabilitySDNN,
+      { from: startDate, to: endDate, unit: 'ms' }
+    );
 
     return samples.map((sample: any) => ({
-      value: sample.quantity || sample.value || 0,
+      value: sample.quantity ?? 0,
       unit: 'ms',
-      startDate: new Date(sample.startDate),
-      endDate: sample.endDate ? new Date(sample.endDate) : undefined,
-      source: sample.sourceName || 'Apple Health',
-      metadata: {
-        device: sample.device,
-      },
+      startDate: sample.startDate,
+      endDate: sample.endDate,
+      source: sample.sourceRevision?.source?.name ?? 'Apple Health',
+      metadata: { device: sample.device },
     }));
   } catch (error) {
     console.error('Error fetching heart rate variability:', error);
@@ -522,15 +513,14 @@ export async function getMindfulMinutes(
   }
 
   try {
-    const samples = await HealthKitModule.getCategorySamples({
-      type: 'MindfulSession',
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-    });
+    const { samples } = await HealthKitModule.queryCategorySamples(
+      HK.category.mindfulSession,
+      { from: startDate, to: endDate }
+    );
 
     return samples.map((sample: any) => {
-      const start = new Date(sample.startDate);
-      const end = new Date(sample.endDate);
+      const start = sample.startDate;
+      const end = sample.endDate;
       const minutes = (end.getTime() - start.getTime()) / (1000 * 60);
 
       return {
@@ -538,10 +528,8 @@ export async function getMindfulMinutes(
         unit: 'minute',
         startDate: start,
         endDate: end,
-        source: sample.sourceName || 'Apple Health',
-        metadata: {
-          device: sample.device,
-        },
+        source: sample.sourceRevision?.source?.name ?? 'Apple Health',
+        metadata: { device: sample.device },
       };
     });
   } catch (error) {
@@ -566,22 +554,18 @@ export async function getRespiratoryRate(
   }
 
   try {
-    const samples = await HealthKitModule.getQuantitySamples({
-      type: 'RespiratoryRate',
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      unit: 'count/min',
-    });
+    const { samples } = await HealthKitModule.queryQuantitySamples(
+      HK.quantity.respiratoryRate,
+      { from: startDate, to: endDate, unit: 'count/min' }
+    );
 
     return samples.map((sample: any) => ({
-      value: sample.quantity || sample.value || 0,
+      value: sample.quantity ?? 0,
       unit: 'count/min',
-      startDate: new Date(sample.startDate),
-      endDate: sample.endDate ? new Date(sample.endDate) : undefined,
-      source: sample.sourceName || 'Apple Health',
-      metadata: {
-        device: sample.device,
-      },
+      startDate: sample.startDate,
+      endDate: sample.endDate,
+      source: sample.sourceRevision?.source?.name ?? 'Apple Health',
+      metadata: { device: sample.device },
     }));
   } catch (error) {
     console.error('Error fetching respiratory rate:', error);
@@ -605,22 +589,18 @@ export async function getRestingEnergy(
   }
 
   try {
-    const samples = await HealthKitModule.getQuantitySamples({
-      type: 'BasalEnergyBurned',
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      unit: 'kcal',
-    });
+    const { samples } = await HealthKitModule.queryQuantitySamples(
+      HK.quantity.basalEnergyBurned,
+      { from: startDate, to: endDate, unit: 'kcal' }
+    );
 
     return samples.map((sample: any) => ({
-      value: sample.quantity || sample.value || 0,
+      value: sample.quantity ?? 0,
       unit: 'kcal',
-      startDate: new Date(sample.startDate),
-      endDate: sample.endDate ? new Date(sample.endDate) : undefined,
-      source: sample.sourceName || 'Apple Health',
-      metadata: {
-        device: sample.device,
-      },
+      startDate: sample.startDate,
+      endDate: sample.endDate,
+      source: sample.sourceRevision?.source?.name ?? 'Apple Health',
+      metadata: { device: sample.device },
     }));
   } catch (error) {
     console.error('Error fetching resting energy:', error);
@@ -644,22 +624,18 @@ export async function getBodyMass(
   }
 
   try {
-    const samples = await HealthKitModule.getQuantitySamples({
-      type: 'BodyMass',
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      unit: 'kg',
-    });
+    const { samples } = await HealthKitModule.queryQuantitySamples(
+      HK.quantity.bodyMass,
+      { from: startDate, to: endDate, unit: 'kg' }
+    );
 
     return samples.map((sample: any) => ({
-      value: sample.quantity || sample.value || 0,
+      value: sample.quantity ?? 0,
       unit: 'kg',
-      startDate: new Date(sample.startDate),
-      endDate: sample.endDate ? new Date(sample.endDate) : undefined,
-      source: sample.sourceName || 'Apple Health',
-      metadata: {
-        device: sample.device,
-      },
+      startDate: sample.startDate,
+      endDate: sample.endDate,
+      source: sample.sourceRevision?.source?.name ?? 'Apple Health',
+      metadata: { device: sample.device },
     }));
   } catch (error) {
     console.error('Error fetching body mass:', error);
@@ -683,22 +659,18 @@ export async function getVO2Max(
   }
 
   try {
-    const samples = await HealthKitModule.getQuantitySamples({
-      type: 'VO2Max',
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      unit: 'ml/kg·min',
-    });
+    const { samples } = await HealthKitModule.queryQuantitySamples(
+      HK.quantity.vo2Max,
+      { from: startDate, to: endDate, unit: 'ml/(kg*min)' }
+    );
 
     return samples.map((sample: any) => ({
-      value: sample.quantity || sample.value || 0,
+      value: sample.quantity ?? 0,
       unit: 'ml/kg·min',
-      startDate: new Date(sample.startDate),
-      endDate: sample.endDate ? new Date(sample.endDate) : undefined,
-      source: sample.sourceName || 'Apple Health',
-      metadata: {
-        device: sample.device,
-      },
+      startDate: sample.startDate,
+      endDate: sample.endDate,
+      source: sample.sourceRevision?.source?.name ?? 'Apple Health',
+      metadata: { device: sample.device },
     }));
   } catch (error) {
     console.error('Error fetching VO2 Max:', error);

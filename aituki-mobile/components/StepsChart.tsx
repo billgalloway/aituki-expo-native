@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
 import { BarChart } from 'react-native-gifted-charts';
 import { Colors, Typography, Spacing } from '@/constants/theme';
 import IconLibrary from '@/components/IconLibrary';
@@ -16,38 +16,45 @@ interface StepsChartProps {
   runningData?: number[];
 }
 
+const DEFAULT_WALKING = [45, 35, 50, 55];
+const DEFAULT_RUNNING = [20, 30, 25, 20];
+
 export default function StepsChart({
   value = '56,348',
   subtitle = '15% above average',
-  walkingData = [45, 35, 50, 55],
-  runningData = [20, 30, 25, 20],
+  walkingData = DEFAULT_WALKING,
+  runningData = DEFAULT_RUNNING,
 }: StepsChartProps) {
+  // Ensure arrays exist and have same length (avoid undefined in stacks)
+  const walking = Array.isArray(walkingData) ? walkingData : DEFAULT_WALKING;
+  const running = Array.isArray(runningData) ? runningData : DEFAULT_RUNNING;
+  const len = Math.max(walking.length, running.length, 4);
+  const safeWalking = Array.from({ length: len }, (_, i) =>
+    typeof walking[i] === 'number' && !Number.isNaN(walking[i]) ? walking[i] : 0
+  );
+  const safeRunning = Array.from({ length: len }, (_, i) =>
+    typeof running[i] === 'number' && !Number.isNaN(running[i]) ? running[i] : 0
+  );
+
   // Prepare data for stacked bar chart
-  // Each bar has two stacks: Walking (bottom) and Running (top)
-  const barData = walkingData.map((walkingValue, index) => ({
+  const barData = safeWalking.map((walkingValue, index) => ({
     stacks: [
-      {
-        value: walkingValue,
-        color: '#7987FF', // Walking color (bottom)
-      },
-      {
-        value: runningData[index],
-        color: '#E697FF', // Running color (top)
-      },
+      { value: walkingValue, color: '#7987FF' },
+      { value: safeRunning[index], color: '#E697FF' },
     ],
     label: '',
-    labelTextStyle: {
-      color: 'transparent',
-      fontSize: 0,
-    },
+    labelTextStyle: { color: 'transparent', fontSize: 0 },
   }));
 
   // Y-axis labels (from top to bottom: 60, 40, 20, 0)
   const yAxisLabels = ['60', '40', '20', '0'];
 
-  // Calculate chart width based on available space
-  const screenWidth = Dimensions.get('window').width;
-  const chartWidth = screenWidth - (Spacing.lg * 2) - 48 - Spacing.sm; // Container padding + y-axis + spacing
+  // Calculate chart width - Android: Dimensions can return 0 before layout; use fallback
+  const rawWidth = Dimensions.get('window').width;
+  const screenWidth = rawWidth > 0 ? rawWidth : 360;
+  const chartWidth = Math.max(200, screenWidth - (Spacing.lg * 2) - 48 - Spacing.sm);
+
+  const isAndroid = Platform.OS === 'android';
 
   return (
     <View style={styles.container}>
@@ -78,22 +85,22 @@ export default function StepsChart({
           ))}
         </View>
 
-        {/* Chart */}
-        <View style={styles.chartWrapper}>
+        {/* Chart - Android: disable rounded corners and animation for stability */}
+        <View style={[styles.chartWrapper, isAndroid && styles.chartWrapperAndroid]}>
           <BarChart
             data={barData}
             width={chartWidth}
             height={180}
             barWidth={12}
             spacing={8}
-            roundedTop
-            roundedBottom
+            roundedTop={!isAndroid}
+            roundedBottom={!isAndroid}
             hideRules
             xAxisThickness={0}
             yAxisThickness={0}
             noOfSections={3}
             maxValue={60}
-            isAnimated
+            isAnimated={!isAndroid}
             animationDuration={800}
             disablePress
             showVerticalLines={false}
@@ -191,6 +198,9 @@ const styles = StyleSheet.create({
   chartWrapper: {
     flex: 1,
     overflow: 'hidden',
+  },
+  chartWrapperAndroid: {
+    minWidth: 200,
   },
   xAxisContainer: {
     flexDirection: 'row',

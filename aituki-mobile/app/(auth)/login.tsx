@@ -244,17 +244,20 @@ export default function LoginScreen() {
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.socialButton, { backgroundColor: FIGMA.socialButtonBg, borderColor: FIGMA.socialButtonBorder }]}
-            onPress={handleAppleLogin}
-            disabled={loading}
-            accessibilityRole="button"
-            accessibilityLabel="Continue with Apple">
-            <View style={styles.socialButtonContent}>
-              <Image source={{ uri: APPLE_ICON_URI }} style={styles.socialButtonIcon} resizeMode="contain" />
-              <Text style={[styles.socialButtonText, { color: themeColors.textPrimary }]}>Continue with Apple</Text>
-            </View>
-          </TouchableOpacity>
+          {/* Apple Sign-In: hidden on iOS per product requirement */}
+          {Platform.OS !== 'ios' && (
+            <TouchableOpacity
+              style={[styles.socialButton, { backgroundColor: FIGMA.socialButtonBg, borderColor: FIGMA.socialButtonBorder }]}
+              onPress={handleAppleLogin}
+              disabled={loading}
+              accessibilityRole="button"
+              accessibilityLabel="Continue with Apple">
+              <View style={styles.socialButtonContent}>
+                <Image source={{ uri: APPLE_ICON_URI }} style={styles.socialButtonIcon} resizeMode="contain" />
+                <Text style={[styles.socialButtonText, { color: themeColors.textPrimary }]}>Continue with Apple</Text>
+              </View>
+            </TouchableOpacity>
+          )}
 
           {/* 4. OR – typography caps, centred, no lines */}
           <Text style={[styles.orTextCentered, { color: themeColors.textPrimary }]}>OR</Text>

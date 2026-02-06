@@ -6,11 +6,12 @@
 
 import { useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
+import * as NavigationBar from 'expo-navigation-bar';
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
-import { StatusBar as RNStatusBar, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import 'react-native-reanimated';
@@ -41,19 +42,22 @@ function AppWithSplash() {
     return () => clearTimeout(t);
   }, []);
 
+  // Android: set system navigation bar to app teal so it’s not a visible bar under the app
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      NavigationBar.setBackgroundColorAsync(Colors.light.primary).catch(() => {});
+    }
+  }, []);
+
   const showingLoading = loading || !minTimeElapsed || !iconFontsLoaded;
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const paperTheme = isDark ? PaperThemeDark : PaperThemeLight;
   const statusBarColor = showingLoading ? LoadingScreenTheme.gradient.mid : (isDark ? Colors.dark.statusBar : Colors.light.primary);
-  const statusBarStyle = showingLoading ? 'light-content' : (isDark ? 'light-content' : 'dark-content');
 
   return (
     <PaperProvider theme={paperTheme}>
       <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-        {Platform.OS === 'android' && (
-          <RNStatusBar backgroundColor={statusBarColor} barStyle={statusBarStyle} />
-        )}
         <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="(tabs)" />
@@ -72,7 +76,10 @@ function AppWithSplash() {
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal', headerShown: true }} />
           </Stack>
           {showingLoading && <LoadingScreen />}
-          <ExpoStatusBar style={showingLoading ? 'light' : (isDark ? 'light' : 'dark')} />
+          <ExpoStatusBar
+            style={showingLoading ? 'light' : (isDark ? 'light' : 'dark')}
+            {...(Platform.OS === 'android' && { backgroundColor: statusBarColor })}
+          />
         </ThemeProvider>
       </PaperProvider>
   );

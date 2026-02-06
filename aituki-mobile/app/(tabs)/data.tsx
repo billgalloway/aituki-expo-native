@@ -15,12 +15,14 @@ import { deviceImages, serviceImages } from '@/components/ImageLibrary';
 import { useAppleHealth } from '@/hooks/useAppleHealth';
 import { clearHealthContextCache } from '@/services/openai';
 
-const devices = [
-  { name: 'Apple', imageKey: 'apple' as keyof typeof deviceImages, fallbackIcon: 'watch' },
-  { name: 'Android', imageKey: 'android' as keyof typeof deviceImages, fallbackIcon: 'watch' },
-  { name: 'Fitbit', imageKey: 'fitbit' as keyof typeof deviceImages, fallbackIcon: 'watch' },
-  { name: 'Auro', imageKey: 'auro' as keyof typeof deviceImages, fallbackIcon: 'watch' },
+const devicesAll = [
+  { name: 'Apple', imageKey: 'apple' as keyof typeof deviceImages, fallbackIcon: 'watch', iosOnly: true },
+  { name: 'Android', imageKey: 'android' as keyof typeof deviceImages, fallbackIcon: 'watch', iosOnly: false },
+  { name: 'Fitbit', imageKey: 'fitbit' as keyof typeof deviceImages, fallbackIcon: 'watch', iosOnly: false },
+  { name: 'Auro', imageKey: 'auro' as keyof typeof deviceImages, fallbackIcon: 'watch', iosOnly: false },
 ];
+// On Android, hide Apple (HealthKit) option
+const devices = devicesAll.filter(d => !d.iosOnly || Platform.OS === 'ios');
 
 const services = [
   { name: 'Add data manually', imageKey: 'manual' as keyof typeof serviceImages, fallbackIcon: 'edit' },

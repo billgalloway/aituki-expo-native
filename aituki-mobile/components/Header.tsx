@@ -537,7 +537,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onAlertsPress, hidePromptB
                   style={styles.drawerListItem}
                   onPress={() => {
                     handleMenuClose();
-                    router.push('/data');
+                    router.replace('/(tabs)/data' as any);
                   }}
                 >
                   <View style={styles.drawerListItemLeft}>

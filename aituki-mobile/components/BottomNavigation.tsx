@@ -61,12 +61,9 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
 
   const handleTabPress = (item: NavigationItem) => {
     onTabChange?.(item.name);
-    // Navigate to the tab route
-    if (item.path === '/') {
-      router.push('/(tabs)/' as any);
-    } else {
-      router.push(`/(tabs)${item.path}` as any);
-    }
+    // Use replace for tab switching (avoids stack issues and "page not found")
+    const href = item.path === '/' ? '/(tabs)/' : `/(tabs)${item.path}`;
+    router.replace(href as any);
   };
 
   const dynamicStyles = StyleSheet.create({

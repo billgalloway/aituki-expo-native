@@ -13,6 +13,12 @@ import BottomNavigation from '@/components/BottomNavigation';
 import PhysicalScoreChart from '@/components/PhysicalScoreChart';
 import StepsChart from '@/components/StepsChart';
 import HeartRateChart from '@/components/HeartRateChart';
+import ChartErrorBoundary from '@/components/ChartErrorBoundary';
+import {
+  PhysicalScoreChartAndroid,
+  StepsChartAndroid,
+  HeartRateChartAndroid,
+} from '@/components/charts/ChartsAndroid';
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
 import IconLibrary from '@/components/IconLibrary';
 import { useAppleHealth } from '@/hooks/useAppleHealth';
@@ -35,18 +41,6 @@ export default function HealthScreen() {
     syncStatus,
     error: healthError,
   } = useAppleHealth({ autoSync: false });
-
-  // Debug logging
-  React.useEffect(() => {
-    console.log('=== HealthKit Status ===');
-    console.log('isAvailable:', isAvailable);
-    console.log('permissions:', permissions);
-    console.log('permissionsLoading:', permissionsLoading);
-    console.log('syncLoading:', syncLoading);
-    console.log('syncStatus:', syncStatus);
-    console.log('error:', healthError);
-    console.log('Platform.OS:', Platform.OS);
-  }, [isAvailable, permissions, permissionsLoading, syncLoading, syncStatus, healthError]);
 
   // Chart data from Supabase (pulls from health_data table)
   const {
@@ -118,27 +112,10 @@ export default function HealthScreen() {
           ))}
         </View>
 
-        {/* Debug Info */}
-        <View style={{ padding: 10, backgroundColor: '#f0f0f0', margin: 10 }}>
-          <Text style={{ fontSize: 12 }}>
-            Debug: activeTab={activeTab}, Platform.OS={Platform.OS}, isAvailable={String(isAvailable)}
-          </Text>
-        </View>
-
         {/* Action Buttons - Show on all tabs except Dashboard */}
         {activeTab !== 0 && (
           <View style={styles.actionButtonsContainer}>
-            {/* Test Button - Always visible */}
-            <TouchableOpacity
-              style={[styles.connectDeviceButton, { backgroundColor: 'red', marginBottom: 10 }]}
-              onPress={() => {
-                console.log('🔴 TEST BUTTON PRESSED');
-                Alert.alert('Test', 'Test button works!');
-              }}
-            >
-              <Text style={styles.connectDeviceText}>TEST BUTTON</Text>
-            </TouchableOpacity>
-
+            {/* Apple Health: iOS only; no HealthKit option on Android */}
             {Platform.OS === 'ios' && (
               <TouchableOpacity
                 style={[
@@ -146,10 +123,6 @@ export default function HealthScreen() {
                   (!isAvailable || syncLoading || permissionsLoading) && { opacity: 0.6 }
                 ]}
                 onPress={() => {
-                  console.log('🔵 ===== Apple Health Button Pressed =====');
-                  console.log('🔵 isAvailable:', isAvailable);
-                  console.log('🔵 permissions:', JSON.stringify(permissions, null, 2));
-                  
                   if (!isAvailable) {
                     Alert.alert(
                       'HealthKit Not Available',
@@ -158,13 +131,9 @@ export default function HealthScreen() {
                     );
                     return;
                   }
-
-                  // Navigate to the onboarding flow
                   if (!permissions?.granted) {
-                    // Start the onboarding flow
                     router.push('/connect-apple-health');
                   } else {
-                    // Already connected - trigger manual sync
                     handleManualSync();
                   }
                 }}
@@ -182,11 +151,6 @@ export default function HealthScreen() {
                         : 'Connect Apple Health'}
                   </Text>
                 )}
-              </TouchableOpacity>
-            )}
-            {Platform.OS !== 'ios' && (
-              <TouchableOpacity style={styles.connectDeviceButton}>
-                <Text style={styles.connectDeviceText}>Connect a device</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity style={styles.addDataButton}>
@@ -244,7 +208,12 @@ function DashboardContent() {
 }
 
 // Physical Tab Content
+// Android: useChartData + gifted-charts/svg cause native crash; show simple fallback
 function PhysicalContent() {
+  if (Platform.OS === 'android') {
+    return <PhysicalContentAndroid />;
+  }
+
   const {
     physicalScore,
     stepsData,
@@ -263,26 +232,74 @@ function PhysicalContent() {
 
   return (
     <View style={styles.tabContent}>
-      <View style={styles.chartsContainer}>
-        <PhysicalScoreChart
-          score={physicalScore?.score || 179}
-          subtitle="Last 7 days"
-          percentage={physicalScore?.percentage || 56}
-          label={physicalScore?.label || "Good week"}
-        />
-        <StepsChart
-          value={stepsData?.total.toLocaleString() || "0"}
-          subtitle="15% above average"
-          walkingData={stepsData?.walkingData || [0, 0, 0, 0]}
-          runningData={stepsData?.runningData || [0, 0, 0, 0]}
-        />
-        <HeartRateChart
-          value={heartRateData?.average.toString() || "0"}
-          subtitle="15% above average"
-          timeLabels={['08:00', '10:00', '12:00', '14:00', '16:00']}
-          heartRateData={heartRateData?.heartRateData || [0, 0, 0, 0, 0]}
-        />
+      <ChartErrorBoundary>
+        <View style={styles.chartsContainer}>
+          <PhysicalScoreChart
+            score={physicalScore?.score || 179}
+            subtitle="Last 7 days"
+            percentage={physicalScore?.percentage || 56}
+            label={physicalScore?.label || "Good week"}
+          />
+          <StepsChart
+            value={stepsData?.total != null ? stepsData.total.toLocaleString() : "0"}
+            subtitle="15% above average"
+            walkingData={stepsData?.walkingData || [0, 0, 0, 0]}
+            runningData={stepsData?.runningData || [0, 0, 0, 0]}
+          />
+          <HeartRateChart
+            value={heartRateData?.average != null ? String(heartRateData.average) : "0"}
+            subtitle="15% above average"
+            timeLabels={['08:00', '10:00', '12:00', '14:00', '16:00']}
+            heartRateData={heartRateData?.heartRateData || [0, 0, 0, 0, 0]}
+          />
+        </View>
+      </ChartErrorBoundary>
+    </View>
+  );
+}
+
+// Android: Victory Native charts (avoids gifted-charts/svg crash)
+function PhysicalContentAndroid() {
+  const {
+    physicalScore,
+    stepsData,
+    heartRateData,
+    loading: chartsLoading,
+  } = useChartData({ autoRefresh: true });
+
+  if (chartsLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.light.primary} />
+        <Text style={styles.loadingText}>Loading chart data...</Text>
       </View>
+    );
+  }
+
+  return (
+    <View style={styles.tabContent}>
+      <ChartErrorBoundary>
+        <View style={styles.chartsContainer}>
+          <PhysicalScoreChartAndroid
+            score={physicalScore?.score || 179}
+            subtitle="Last 7 days"
+            percentage={physicalScore?.percentage || 56}
+            label={physicalScore?.label || 'Good week'}
+          />
+          <StepsChartAndroid
+            value={stepsData?.total != null ? stepsData.total.toLocaleString() : '0'}
+            subtitle="15% above average"
+            walkingData={stepsData?.walkingData || [0, 0, 0, 0]}
+            runningData={stepsData?.runningData || [0, 0, 0, 0]}
+          />
+          <HeartRateChartAndroid
+            value={heartRateData?.average != null ? String(heartRateData.average) : '0'}
+            subtitle="15% above average"
+            timeLabels={['08:00', '10:00', '12:00', '14:00', '16:00']}
+            heartRateData={heartRateData?.heartRateData || [0, 0, 0, 0, 0]}
+          />
+        </View>
+      </ChartErrorBoundary>
     </View>
   );
 }

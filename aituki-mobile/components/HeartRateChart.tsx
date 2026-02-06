@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 import { Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
 import IconLibrary from '@/components/IconLibrary';
@@ -16,15 +16,23 @@ interface HeartRateChartProps {
   heartRateData?: number[];
 }
 
+const DEFAULT_HEART_RATE = [85, 95, 102, 98, 105];
+const DEFAULT_TIME_LABELS = ['08:00', '10:00', '12:00', '14:00', '16:00'];
+
 export default function HeartRateChart({
   value = '102',
   subtitle = '15% above average',
-  timeLabels = ['08:00', '10:00', '12:00', '14:00', '16:00'],
-  heartRateData = [85, 95, 102, 98, 105],
+  timeLabels = DEFAULT_TIME_LABELS,
+  heartRateData = DEFAULT_HEART_RATE,
 }: HeartRateChartProps) {
+  // Ensure we have at least 2 data points (required for line chart; avoids division by zero in spacing)
+  const safeData = Array.isArray(heartRateData) && heartRateData.length >= 2
+    ? heartRateData
+    : DEFAULT_HEART_RATE;
+
   // Prepare data for line chart
-  const lineData = heartRateData.map((value, index) => ({
-    value,
+  const lineData = safeData.map((val) => ({
+    value: typeof val === 'number' && !Number.isNaN(val) ? val : 0,
     label: '',
     labelTextStyle: {
       color: 'transparent',
@@ -32,9 +40,15 @@ export default function HeartRateChart({
     },
   }));
 
-  // Calculate chart width based on available space
-  const screenWidth = Dimensions.get('window').width;
-  const chartWidth = screenWidth - (Spacing.xl * 2); // Account for padding
+  // Calculate chart width and spacing; avoid division by zero when lineData.length < 2
+  // Android: Dimensions can return 0 before layout; use fallback
+  const rawWidth = Dimensions.get('window').width;
+  const screenWidth = rawWidth > 0 ? rawWidth : 360;
+  const chartWidth = Math.max(200, screenWidth - (Spacing.xl * 2));
+  const spacingDivisor = Math.max(1, lineData.length - 1);
+  const spacing = chartWidth / spacingDivisor - 20;
+
+  const isAndroid = Platform.OS === 'android';
 
   return (
     <View style={styles.container}>
@@ -54,8 +68,8 @@ export default function HeartRateChart({
         <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
 
-      {/* Chart Container */}
-      <View style={styles.chartContainer}>
+      {/* Chart Container - minWidth on Android prevents layout collapse */}
+      <View style={[styles.chartContainer, isAndroid && styles.chartContainerAndroid]}>
         <LineChart
           data={lineData}
           width={chartWidth}
@@ -66,15 +80,17 @@ export default function HeartRateChart({
           yAxisThickness={0}
           xAxisThickness={0}
           hideYAxisText
-          spacing={chartWidth / (lineData.length - 1) - 20}
-          curved
-          isAnimated
+          spacing={Math.max(8, spacing)}
+          curved={!isAndroid}
+          isAnimated={!isAndroid}
           animationDuration={800}
-          areaChart
-          startFillColor={Colors.light.primaryDark}
-          endFillColor={Colors.light.primary || '#E0F5F5'}
-          startOpacity={0.3}
-          endOpacity={0}
+          areaChart={!isAndroid}
+          {...(!isAndroid && {
+            startFillColor: Colors.light.primaryDark,
+            endFillColor: Colors.light.primary || '#E0F5F5',
+            startOpacity: 0.3,
+            endOpacity: 0,
+          })}
         />
       </View>
 
@@ -139,6 +155,10 @@ const styles = StyleSheet.create({
   chartContainer: {
     marginBottom: Spacing.sm,
     alignItems: 'center',
+  },
+  chartContainerAndroid: {
+    minWidth: 280,
+    overflow: 'hidden' as const,
   },
   xAxisContainer: {
     flexDirection: 'row',
